@@ -1,0 +1,67 @@
+<view class="container">
+  <form bindsubmit="onSubmit">
+    <!-- 类型切换 (和首页筛选栏统一) -->
+    <view class="type-tab-bar">
+      <view class="tab-item {{transactionType == 2 ? 'active expense' : ''}}" bindtap="changeTransactionType" data-type="2">支出</view>
+      <view class="tab-item {{transactionType == 1 ? 'active income' : ''}}" bindtap="changeTransactionType" data-type="1">收入</view>
+    </view>
+
+    <!-- 输入主卡片 -->
+    <view class="fui-card">
+      <view class="input-row main-amount">
+        <text class="currency">¥</text>
+        <input name="amount" type="digit" placeholder="0.00" value="{{amount}}" placeholder-class="placeholder-amount" focus="{{true}}" />
+      </view>
+    </view>
+
+    <!-- 配置详情卡片 -->
+    <view class="fui-card">
+      <!-- 选择分类 (二级联动) -->
+      <picker 
+        mode="multiSelector" 
+        bindchange="onCategoryChange" 
+        bindcolumnchange="onCategoryColumnChange" 
+        value="{{multiIndex}}" 
+        range="{{multiArray}}"
+      >
+        <view class="input-row border-bottom">
+          <view class="label-box">
+             <text class="icon-emoji">📁</text>
+             <text class="label">分类</text>
+          </view>
+          <view class="picker-value">
+            {{multiArray[0][multiIndex[0]]}} > {{multiArray[1][multiIndex[1]]}}
+            <view class="nav-arrow right"></view>
+          </view>
+        </view>
+      </picker>
+
+      <!-- 选择日期 -->
+      <picker mode="date" value="{{date}}" bindchange="onDateChange">
+        <view class="input-row border-bottom">
+          <view class="label-box">
+             <text class="icon-emoji">📅</text>
+             <text class="label">日期</text>
+          </view>
+          <view class="picker-value">
+            {{date}}
+            <view class="nav-arrow right"></view>
+          </view>
+        </view>
+      </picker>
+
+      <!-- 备注输入 -->
+      <view class="input-row">
+        <view class="label-box">
+           <text class="icon-emoji">📝</text>
+           <text class="label">备注</text>
+        </view>
+        <input name="note" placeholder="写点备注..." value="{{note}}" class="note-input" placeholder-class="placeholder-note" />
+      </view>
+    </view>
+
+    <view class="footer-action">
+      <button form-type="submit" class="submit-btn-premium">保存记录</button>
+    </view>
+  </form>
+</view>

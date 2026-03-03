@@ -1,0 +1,81 @@
+<view class="container">
+  
+  <view class="user-card fui-card" bindtap="showBind">
+    <image class="user-avatar" src="{{userInfo.avatarUrl || '/images/icons/avatar.png'}}" mode="aspectFill"></image>
+    <view class="user-info">
+      <view class="name-row">
+        <text class="user-name">{{userInfo.nickname || '未设置昵称'}}</text>
+        <view class="required-tag" wx:if="{{userInfo.isNew}}">待完善</view>
+      </view>
+      <text class="user-desc">{{userInfo.isNew ? '点击此处上传头像并设置昵称，开启记账之旅' : '自律记账，享受更有质感的生活'}}</text>
+    </view>
+    <view class="nav-arrow right"></view>
+  </view>
+
+  <!-- 账本管理 -->
+  <view class="fui-card settings-group">
+    <view class="group-title">账本管理</view>
+    <view class="settings-item" bindtap="navTo" data-url="/pages/group/index">
+      <view class="item-left">
+        <text class="item-icon">👥</text>
+        <text class="item-label">我的小组</text>
+      </view>
+      <view class="item-right">
+        <text class="item-value">管理多人账本</text>
+        <view class="nav-arrow right"></view>
+      </view>
+    </view>
+    <view class="settings-item" bindtap="navTo" data-url="/pages/stats/index">
+      <view class="item-left">
+        <text class="item-icon">📊</text>
+        <text class="item-label">统计分析</text>
+      </view>
+      <view class="item-right">
+        <text class="item-value">可视化账单查看</text>
+        <view class="nav-arrow right"></view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 数据配置 -->
+  <view class="fui-card settings-group">
+    <view class="group-title">数据配置</view>
+    <view class="settings-item" bindtap="navTo" data-url="/pages/category/index">
+      <view class="item-left">
+        <text class="item-icon">🏷️</text>
+        <text class="item-label">分类管理</text>
+      </view>
+      <view class="item-right">
+        <text class="item-value">自定义收支分类</text>
+        <view class="nav-arrow right"></view>
+      </view>
+    </view>
+  </view>
+
+  <view class="version-info">当前版本 v1.0.0</view>
+
+  <!-- 绑定信息弹窗 -->
+  <view class="modal-mask" wx:if="{{showBindModal}}">
+    <view class="modal-content">
+      <view class="modal-title">完善个人信息</view>
+      <view class="modal-body-form">
+        <view class="avatar-selection-row">
+          <button class="avatar-wrapper" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+            <image class="avatar-preview" src="{{tempAvatarUrl || userInfo.avatarUrl || '/images/icons/avatar.png'}}"></image>
+            <view class="avatar-edit-icon">📸</view>
+          </button>
+          <text class="avatar-hint">点击更换头像</text>
+        </view>
+        <view class="input-group-row">
+          <text class="label">昵称</text>
+          <input class="modal-input-field" placeholder="请输入您的昵称" bindinput="onNicknameInput" value="{{tempNickname}}" />
+        </view>
+        <view class="modal-tips">提示：绑定后可享受更好的服务体验</view>
+      </view>
+      <view class="modal-footer">
+        <button class="btn-action cancel" bindtap="hideBind" wx:if="{{!userInfo.isNew}}">取消</button>
+        <button class="btn-action confirm {{userInfo.isNew ? 'full-width' : ''}}" bindtap="confirmBind">{{userInfo.isNew ? '完成并开始使用' : '确定保存'}}</button>
+      </view>
+    </view>
+  </view>
+</view>

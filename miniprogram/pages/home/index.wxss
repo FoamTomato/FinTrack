@@ -1,0 +1,723 @@
+/* pages/home/index.wxss */
+page {
+  background-color: #f7f8fa; /* 更柔和的背景灰 */
+  padding-bottom: 200rpx; /* 留出底部 TabBar 的空间 */
+}
+
+.container {
+  padding: 20rpx 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: fadeIn 0.8s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.bind-notice {
+  width: 92%;
+  background-color: #fff7e6;
+  border: 1rpx solid #ffe7ba;
+  padding: 20rpx 30rpx;
+  border-radius: 16rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+  font-size: 26rpx;
+  color: #fa8c16;
+  animation: fadeIn 0.8s ease-out;
+}
+
+.bind-btn {
+  font-weight: bold;
+  text-decoration: underline;
+}
+.summary-card {
+  width: 92%;
+  border-radius: 32rpx;
+  background: linear-gradient(135deg, #07c160 0%, #38df86 100%);
+  padding: 40rpx;
+  box-sizing: border-box;
+  color: #ffffff;
+  margin-bottom: 30rpx;
+  box-shadow: 0 10rpx 30rpx rgba(7, 193, 96, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+.summary-main {
+  margin-bottom: 40rpx;
+}
+
+.summary-label {
+  font-size: 24rpx;
+  opacity: 0.9;
+  display: block;
+  margin-bottom: 10rpx;
+}
+
+.summary-value {
+  font-size: 64rpx;
+  font-weight: bold;
+  font-family: 'DIN Alternate', sans-serif;
+}
+
+.summary-sub {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1rpx solid rgba(255, 255, 255, 0.2);
+  padding-top: 30rpx;
+}
+
+.summary-item {
+  flex: 1;
+}
+
+.sub-label {
+  font-size: 22rpx;
+  opacity: 0.8;
+  display: block;
+  margin-bottom: 4rpx;
+}
+
+.sub-value {
+  font-size: 32rpx;
+  font-weight: 600;
+  font-family: 'DIN Alternate', sans-serif;
+}
+
+/* 分类筛选栏 */
+.filter-bar {
+  width: 92%;
+  height: 72rpx;
+  background-color: #f1f3f5;
+  border-radius: 36rpx;
+  display: flex;
+  padding: 4rpx;
+  box-sizing: border-box;
+  margin-bottom: 24rpx;
+  position: relative;
+}
+
+.filter-item {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+  color: #666;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 32rpx;
+  z-index: 1;
+}
+
+.filter-item.active {
+  background-color: #ffffff;
+  color: #07c160;
+  font-weight: bold;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+}
+
+/* 模拟 FirstUI 卡片风格 - 优化为更柔和小清新风格 */
+.fui-card {
+  width: 92%;
+  background-color: #ffffff;
+  border-radius: 32rpx; /* 更圆润 */
+  padding: 30rpx;
+  box-sizing: border-box;
+  margin-bottom: 24rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.03); /* 极轻阴影 */
+}
+
+.fui-card-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 30rpx;
+  padding-left: 16rpx;
+  border-left: 6rpx solid #07c160;
+}
+
+/* 分组标题 */
+.group-header {
+  padding: 10rpx 0 20rpx;
+  border-bottom: 1rpx solid #f8f9fa;
+  margin-bottom: 10rpx;
+}
+
+.group-date {
+  font-size: 24rpx;
+  color: #999;
+  font-weight: 500;
+}
+
+/* 列表样式升级 */
+.fui-list {
+  margin-bottom: 30rpx;
+}
+
+/* 滑动删除样式 */
+.list-row-area {
+  width: 100%;
+  height: 120rpx;
+  position: relative;
+  overflow: hidden;
+  background-color: #fff;
+}
+
+.list-row-content {
+  height: 100%;
+  display: flex;
+  background-color: #fff;
+}
+
+.delete-btn {
+  width: 145rpx;
+  height: 100%;
+  background-color: #ff4d4f;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.fui-list-cell {
+  display: flex;
+  align-items: center;
+  padding: 0 0;
+  height: 100%;
+  width: 100vw;
+  box-sizing: border-box;
+  border-right: 2rpx solid #fff; /* 遮挡缝隙 */
+  background-color: #fff;
+}
+
+.cell-icon {
+  width: 72rpx;
+  height: 72rpx;
+  background-color: #f7f8fa;
+  border-radius: 36rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  margin-right: 20rpx;
+  flex-shrink: 0; 
+}
+
+.cell-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cell-category {
+  font-size: 30rpx;
+  color: #333;
+  font-weight: 500;
+  margin-bottom: 4rpx;
+  display: flex; /* 允许横向排列名字 */
+  align-items: center;
+}
+
+.creator-avatar {
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 50%;
+  margin-left: 12rpx;
+  border: 1rpx solid #eee;
+}
+
+.creator-name {
+  font-size: 22rpx;
+  color: #999;
+  margin-left: 8rpx;
+  font-weight: normal;
+}
+
+
+.cell-time {
+  font-size: 24rpx;
+  color: #bbb;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cell-amount {
+  font-size: 32rpx;
+  font-weight: bold;
+  font-family: 'DIN Alternate', sans-serif;
+  margin-left: 20rpx;
+  margin-right: 10rpx;
+  flex-shrink: 0;
+}
+
+
+.cell-amount.income {
+  color: #ff4d4f; /* 红色代表收入 */
+}
+
+.cell-amount.expense {
+  color: #333333; /* 黑色代表支出 */
+}
+
+.empty-tip {
+  text-align: center;
+  color: #ccc;
+  font-size: 26rpx;
+  padding: 60rpx 0;
+}
+
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* 左右分布 */
+  padding: 10rpx 20rpx;
+  margin-bottom: 30rpx;
+  background-color: #fcfcfc;
+  border-radius: 16rpx;
+}
+
+.nav-btn {
+  padding: 30rpx; /* 极大扩大点击热区 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+}
+
+.nav-btn:active {
+  opacity: 0.5;
+}
+
+.nav-right-box {
+  display: flex;
+  align-items: center;
+}
+
+.nav-today {
+  font-size: 20rpx;
+  color: #07c160;
+  background-color: rgba(7, 193, 96, 0.1);
+  padding: 6rpx 14rpx;
+  border-radius: 20rpx;
+  margin-right: -10rpx; /* 靠近箭头一点 */
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.nav-today:active {
+  transform: scale(0.9);
+  background-color: rgba(7, 193, 96, 0.2);
+}
+
+.nav-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+  flex: 1;
+  text-align: center;
+}
+
+.nav-arrow {
+  width: 16rpx;
+  height: 16rpx;
+  border-top: 4rpx solid #bbbbbb; /* 加粗一点更清晰 */
+  border-left: 4rpx solid #bbbbbb;
+}
+
+.nav-arrow.left { transform: rotate(-45deg); }
+.nav-arrow.right { transform: rotate(135deg); }
+
+/* 收支日历网格样式 */
+.calendar-header {
+  display: flex;
+  justify-content: space-around;
+  padding-bottom: 16rpx;
+}
+
+.calendar-header text {
+  font-size: 24rpx;
+  color: #999;
+  width: calc(100% / 7);
+  text-align: center;
+  font-weight: 400;
+}
+
+.calendar-grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+@keyframes stagger-fade-in {
+  from { opacity: 0; transform: scale(0.95) translateY(10rpx); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.calendar-cell {
+  width: calc(100% / 7 - 10rpx);
+  margin: 5rpx;
+  aspect-ratio: 1 / 1; /* 强制保持正方形 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12rpx;
+  transition: all 0.2s ease;
+  background-color: #f9f9fabd; /* 默认超浅背景 */
+  
+  /* 入场动画 */
+  opacity: 0; 
+  animation: stagger-fade-in 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.calendar-cell.empty { background: transparent; }
+
+.day-label {
+  font-size: 24rpx;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 2rpx;
+}
+
+.amount-label {
+  font-size: 20rpx;
+  font-weight: 600;
+  font-family: 'DIN Alternate', sans-serif;
+}
+
+/* 蚂蚁财富配色方案：实色化升级 (绿底白字) */
+.calendar-cell.income {
+  background-color: #ff4d4f; /* 稳重的正红 */
+  color: #ffffff;
+}
+.calendar-cell.income .day-label, 
+.calendar-cell.income .amount-label { 
+  color: #ffffff !important; 
+}
+
+.calendar-cell.expense {
+  background-color: #07c160; /* 品牌绿 / 绿底 */
+  color: #ffffff;
+}
+.calendar-cell.expense .day-label, 
+.calendar-cell.expense .amount-label { 
+  color: #ffffff !important; 
+}
+
+.calendar-cell.mixed, .calendar-cell.none {
+  background-color: #f0f2f5;
+  color: #bfbfbf;
+}
+.calendar-cell.mixed .day-label { color: #5c6166; }
+.calendar-cell.mixed .amount-label { color: #8c8c8c; }
+
+.calendar-cell.none .day-label { color: #8c8c8c; }
+.calendar-cell.none .amount-label { color: #cccccc; }
+
+/* 今日高亮 (智慧蓝) */
+.calendar-cell.is-today {
+  background-color: #1890ff !important;
+  color: #ffffff !important;
+  box-shadow: 0 8rpx 20rpx rgba(24, 144, 255, 0.3);
+  transform: scale(1.05);
+  z-index: 2;
+}
+/* 自定义详情弹窗样式 */
+.base-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(4px);
+}
+
+.base-modal.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.detail-modal {
+  width: 85%;
+  background-color: #ffffff;
+  border-radius: 32rpx;
+  padding: 40rpx;
+  transform: scale(0.9);
+  transition: all 0.3s ease;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.base-modal.show .detail-modal {
+  transform: scale(1);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.modal-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.close-icon {
+  font-size: 48rpx;
+  color: #ccc;
+  line-height: 1;
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.cell-right-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.cell-full-time {
+  font-size: 20rpx;
+  color: #cccccc;
+  margin-top: 4rpx;
+  font-family: 'DIN Alternate', sans-serif;
+}
+
+/* 弹窗明细列表专用样式 */
+.detail-list .fui-list-cell {
+  padding: 30rpx 40rpx; /* 侧边增加内边距 */
+  height: auto;
+  border-bottom: 1rpx solid #f8f8f8;
+  width: 100%; /* 还原正常宽度，不再是 100vw */
+  border-right: none; /* 移除遮挡缝隙的边框 */
+  background-color: transparent; /* 背景透明，跟随弹窗 */
+}
+
+.detail-list .cell-info {
+  flex: 1; /* 撑开中间 */
+  padding-left: 20rpx;
+}
+
+.detail-list .cell-right-box {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.detail-list .cell-amount {
+  margin: 0; /* 移除外边距，防止在有限空间内挤压 */
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+.modal-footer {
+  margin-top: 40rpx;
+}
+
+.fui-btn-primary {
+  background: linear-gradient(135deg, #07c160 0%, #38df86 100%);
+  color: white;
+  border-radius: 44rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  border: none;
+}
+
+/* 骨架屏动画 */
+@keyframes skeleton-pulse {
+  0% { background-color: #f2f2f2; }
+  50% { background-color: #e6e6e6; }
+  100% { background-color: #f2f2f2; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fade-in 0.4s ease-out forwards;
+}
+
+.skeleton-box {
+  width: 100%;
+  height: 300rpx;
+  overflow: hidden;
+}
+
+.skeleton-rect {
+  width: 100%;
+  height: 100%;
+  border-radius: 12rpx;
+  animation: skeleton-pulse 1.5s infinite ease-in-out;
+}
+
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 12rpx;
+}
+
+.skeleton-cell {
+  aspect-ratio: 1 / 1;
+  background-color: #f2f2f2;
+  border-radius: 12rpx;
+  animation: skeleton-pulse 1.5s infinite ease-in-out;
+}
+
+/* 账本切换按钮 */
+.summary-card {
+  position: relative; /* 确保绝对定位生效 */
+}
+
+.bill-switch-btn {
+  position: absolute;
+  top: 30rpx;
+  right: 30rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 30rpx;
+  padding: 8rpx 20rpx;
+  display: flex;
+  align-items: center;
+  font-size: 24rpx;
+  color: #ffffff;
+  backdrop-filter: blur(4px);
+  border: 1rpx solid rgba(255, 255, 255, 0.3);
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.bill-switch-btn:active {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(0.95);
+}
+
+.switch-icon {
+  font-size: 28rpx;
+  margin-right: 8rpx;
+  font-weight: bold;
+}
+
+.switch-text {
+  font-size: 22rpx;
+  font-weight: 500;
+}
+
+/* 账本切换 Bottom Sheet */
+.bill-type-sheet {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 40rpx 40rpx 60rpx; /* 底部留白 */
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  box-shadow: 0 -10rpx 40rpx rgba(0,0,0,0.05);
+}
+
+.base-modal.show .bill-type-sheet {
+  transform: translateY(0);
+}
+
+.sheet-header {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  text-align: center;
+  margin-bottom: 40rpx;
+}
+
+.sheet-options {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  margin-bottom: 40rpx;
+}
+
+.sheet-item {
+  display: flex;
+  align-items: center;
+  padding: 30rpx 40rpx;
+  background: #f7f8fa;
+  border-radius: 20rpx;
+  font-size: 30rpx;
+  color: #333;
+  font-weight: 500;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.sheet-item.active {
+  background: rgba(7, 193, 96, 0.1);
+  color: #07c160;
+  font-weight: bold;
+  box-shadow: 0 4rpx 12rpx rgba(7, 193, 96, 0.1);
+}
+
+.item-icon {
+  margin-right: 20rpx;
+  font-size: 36rpx;
+}
+
+.item-name {
+  flex: 1;
+}
+
+.item-check {
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+.sheet-cancel {
+  text-align: center;
+  font-size: 30rpx;
+  color: #999;
+  padding: 20rpx 0;
+}
+
+.sheet-divider {
+  font-size: 24rpx;
+  color: #999;
+  margin: 30rpx 0 10rpx 10rpx;
+  font-weight: 500;
+}
+
+.sheet-empty-tip {
+  text-align: center;
+  color: #07c160;
+  padding: 30rpx 0;
+  font-size: 28rpx;
+  background: #f7f8fa;
+  border-radius: 20rpx;
+  margin-top: 10rpx;
+}

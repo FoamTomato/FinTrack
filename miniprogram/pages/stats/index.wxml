@@ -1,0 +1,175 @@
+<view class="container">
+  <!-- 顶部状态栏占位/背景 -->
+  <view class="header-bg"></view>
+
+  <!-- 顶部悬浮筛选器 -->
+  <view class="filter-wrapper sticky-header">
+    <view class="scope-tabs">
+      <view class="tab {{scope === 0 ? 'active' : ''}}" bindtap="onScopeChange" data-scope="0">个人</view>
+      <view class="tab {{scope === 1 ? 'active' : ''}}" bindtap="onScopeChange" data-scope="1">小组</view>
+      <view class="tab-indicator" style="left: {{scope === 0 ? '4rpx' : '50%'}}"></view>
+    </view>
+
+    <!-- 小组列表导航 (仅小组模式) -->
+    <view class="group-nav" wx:if="{{scope === 1 && groups.length > 0}}">
+      <scroll-view scroll-x class="group-scroll" enable-flex scroll-into-view="g{{groupId}}">
+        <view wx:for="{{groups}}" wx:key="id" id="g{{item.id}}"
+              class="group-item {{groupId === item.id ? 'active' : ''}}"
+              bindtap="onGroupChange" data-index="{{index}}">
+          {{item.name}}
+        </view>
+      </scroll-view>
+    </view>
+
+    <!-- 收入/支出 切换 -->
+    <view class="type-switch-container">
+      <view class="type-switch">
+        <view class="type-item {{type === 2 ? 'active' : ''}}" bindtap="onTypeChange" data-type="2">支出</view>
+        <view class="type-item {{type === 1 ? 'active' : ''}}" bindtap="onTypeChange" data-type="1">收入</view>
+        <view class="type-indicator" style="transform: translateX({{type === 1 ? '100%' : '0'}});"></view>
+      </view>
+    </view>
+
+    <!-- 时间选择/筛选 -->
+    <view class="date-row">
+      <picker mode="date" fields="month" value="{{currentMonth}}" bindchange="onMonthPickerChange">
+        <view class="month-selector {{quickKey !== 'month' && quickKey !== 'year' ? 'is-range' : ''}}">
+          <view class="icon-calendar-mini"></view>
+          <text class="month-text">{{displayDate}}</text>
+          <image class="icon-arrow" src="/images/icons/arrow-down.png"></image>
+        </view>
+      </picker>
+      <view class="filter-action" bindtap="showFilter">
+        <view class="filter-indicator" wx:if="{{quickKey !== 'month'}}"></view>
+    
+        <text class="filter-label">筛选</text>
+      </view>
+    </view>
+  </view>
+
+  <scroll-view scroll-y class="main-content" enable-back-to-top>
+    <!-- 图表核心卡片 -->
+    <view class="stats-card animate-fade-in">
+      <view class="card-header">
+        <text class="card-title">支出构成</text>
+        <text class="total-label">¥{{total}}</text>
+      </view>
+      
+      <!-- 纯 WXML 柱状图（避免 canvas 原生组件层级溢出） -->
+      <view class="chart-box">
+        <view class="bar-chart">
+          <view class="bar-item" wx:for="{{barChartData}}" wx:key="name">
+            <text class="bar-value">{{item.displayAmount}}</text>
+            <view class="bar-column-wrapper">
+              <view class="bar-column" style="height: {{item.heightPercent}}%; background: {{item.color}}"></view>
+            </view>
+            <text class="bar-label">{{item.displayName}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="chart-legend">
+        <view class="legend-item" wx:for="{{list}}" wx:key="name" wx:if="{{index < 4}}">
+          <view class="dot" style="background: {{chartColors[index] || '#E0E0E0'}}"></view>
+          <text class="name">{{item.name}}</text>
+          <text class="pct">{{item.percent}}%</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 分类详情列表 -->
+    <view class="detail-section">
+      <view class="detail-card animate-fade-in" wx:if="{{list.length > 0}}">
+        <view class="card-header border-bottom">
+          <text class="card-title">分类明细</text>
+        </view>
+
+        <view class="list-wrapper">
+          <view class="category-row {{item.expanded ? 'expanded' : ''}}" 
+                wx:for="{{list}}" wx:key="name">
+            <view class="row-main" bindtap="toggleSub" data-index="{{index}}">
+              <view class="cat-icon">{{item.icon || '🏷️'}}</view>
+              <view class="cat-body">
+                <view class="body-top">
+                  <text class="cat-name">{{item.name}}</text>
+                  <text class="cat-amount">¥{{item.amount}}</text>
+                </view>
+                <view class="body-bottom">
+                  <view class="progress-bar">
+                    <view class="progress-fill" style="width:{{item.percent}}%; background: {{chartColors[index % chartColors.length]}}"></view>
+                  </view>
+                  <text class="cat-pct">{{item.percent}}%</text>
+                </view>
+              </view>
+              <view class="expand-icon {{item.expanded ? 'up' : ''}}"></view>
+            </view>
+
+            <!-- 子分类展开 -->
+            <view class="sub-list" wx:if="{{item.expanded}}">
+              <view class="sub-item" wx:for="{{item.items}}" wx:key="name" wx:for-item="sub">
+                <view class="sub-line"></view>
+                <text class="sub-name">{{sub.name}}</text>
+                <text class="sub-amount">¥{{sub.amount}}</text>
+                <text class="sub-pct">{{sub.percent}}%</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 空状态 -->
+      <view class="empty-holder" wx:if="{{!loading && list.length === 0}}">
+        <image class="empty-img" src="/images/icons/empty_stats.png" mode="aspectFit"></image>
+        <view class="empty-text">该时间段内暂无记账记录</view>
+        <button class="btn-go-add" bindtap="navToAdd">去记一笔</button>
+      </view>
+    </view>
+
+    <!-- 安全区域占位 -->
+    <view class="safe-area-bottom"></view>
+  </scroll-view>
+
+  <!-- 筛选侧边/底部弹窗 (保留原有逻辑，优化视觉) -->
+  <view class="filter-modal {{showFilterModal ? 'show' : ''}}" bindtap="hideFilter">
+    <view class="modal-content" catchtap="noop">
+      <view class="modal-handle"></view>
+      <view class="modal-title">筛选统计范围</view>
+      
+      <view class="filter-group">
+        <view class="group-label">快捷选择</view>
+        <view class="chip-grid">
+          <view class="chip {{quickKey === 'month' ? 'active' : ''}}" bindtap="onQuickFilter" data-key="month">本月</view>
+          <view class="chip {{quickKey === 'year' ? 'active' : ''}}" bindtap="onQuickFilter" data-key="year">本年</view>
+          <view class="chip {{quickKey === '1m' ? 'active' : ''}}" bindtap="onQuickFilter" data-key="1m">近1月</view>
+          <view class="chip {{quickKey === '3m' ? 'active' : ''}}" bindtap="onQuickFilter" data-key="3m">近3月</view>
+          <view class="chip {{quickKey === '1y' ? 'active' : ''}}" bindtap="onQuickFilter" data-key="1y">近1年</view>
+        </view>
+      </view>
+
+      <view class="filter-group">
+        <view class="group-label">按年筛选</view>
+        <picker mode="date" fields="year" value="{{tempYear}}" bindchange="onYearPickerChange">
+          <view class="date-box {{!tempYear ? 'placeholder' : ''}}">{{tempYear ? tempYear + '年' : '选择特定年份'}}</view>
+        </picker>
+      </view>
+
+      <view class="filter-group">
+        <view class="group-label">自定义日期范围</view>
+        <view class="range-picker">
+          <picker mode="date" value="{{tempStartDate}}" bindchange="onTempDateChange" data-type="start">
+            <view class="date-box {{!tempStartDate ? 'placeholder' : ''}}">{{tempStartDate || '起始日期'}}</view>
+          </picker>
+          <view class="range-line"></view>
+          <picker mode="date" value="{{tempEndDate}}" bindchange="onTempDateChange" data-type="end">
+            <view class="date-box {{!tempEndDate ? 'placeholder' : ''}}">{{tempEndDate || '结束日期'}}</view>
+          </picker>
+        </view>
+      </view>
+
+      <view class="modal-footer">
+        <view class="btn-secondary" bindtap="hideFilter">关闭</view>
+        <view class="btn-primary" bindtap="confirmFilter">确认应用</view>
+      </view>
+    </view>
+  </view>
+</view>

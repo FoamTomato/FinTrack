@@ -1,0 +1,638 @@
+/* Pages/Group/Index.wxss - UI/UX Pro Max Edition (Minimalist & Flat) */
+page {
+  background-color: #f6f7f9;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  box-sizing: border-box;
+}
+
+.container {
+  min-height: 100vh;
+  padding: 0;
+  position: relative;
+  overflow-x: hidden;
+  display: block; /* 覆盖 app.wxss 的 flex 居中布局 */
+  width: 100%;    /* 确保占满屏幕宽度 */
+}
+
+/* 顶部装饰背景 - 移除绿色，改为高级灰白质感 */
+.page-top-bg {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 480rpx;
+  background: linear-gradient(180deg, #ffffff 0%, #f6f7f9 100%);
+  z-index: -1;
+}
+
+.header-section {
+  position: relative;
+  z-index: 1;
+  padding: 60rpx 40rpx 30rpx;
+  text-align: center; /* 居中对齐，更有杂志感 */
+}
+
+.page-title {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+  display: block;
+  letter-spacing: 1rpx;
+}
+
+.page-subtitle {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 8rpx;
+  display: block;
+}
+
+/* 分段切换器 (Segmented Control) - 宽幅且舒适 */
+.tab-sc {
+  position: relative;
+  z-index: 2;
+  margin: 20rpx 40rpx 60rpx; /* 40rpx 边距，让整体足够宽，自然拉开文字距离 */
+  background: #f5f6f8;
+  height: 96rpx;
+  border-radius: 48rpx;
+  display: flex;
+  padding: 8rpx;
+  box-shadow: inset 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
+}
+
+.tab-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 3;
+}
+
+/* 滑块：纯白浮动，使用 margin 修正定位 */
+.tab-slider {
+  position: absolute;
+  top: 8rpx;
+  bottom: 8rpx;
+  left: 0; /* 基准定位 */
+  margin-left: 8rpx; /* 修正 Padding 偏移 */
+  width: calc(50% - 16rpx); /* 精确计算宽度：(100% - 16rpx padding) / 2 */
+  background-color: #ffffff;
+  border-radius: 40rpx;
+  z-index: 2;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.06);
+}
+
+.item-text {
+  font-size: 28rpx; /* 减小字号，更显高级 */
+  color: #8c8c8c;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  letter-spacing: 1rpx;
+}
+
+/* 选中态文字颜色 - 对齐图一：经典品牌绿 */
+.tab-item.active .item-text {
+  color: #07c160;
+  font-weight: 600;
+}
+
+/* 动态计算滑块位置 (由内联样式 style="left: ..." 控制) */
+
+
+/* 内容区域 - 对齐图二：更大画幅，更窄边距 */
+.content-body {
+  padding: 0 32rpx 40rpx; /* 边距缩小至 32rpx，让卡片横向展开更大 */
+}
+
+/* 1. 小组列表卡片 - 与 Portal 样式对齐 */
+.group-ultra-card {
+  background: #ffffff;
+  border-radius: 48rpx; /* 对齐 Portal 的 48rpx */
+  padding: 50rpx 40rpx; /* 对齐 Portal 的 Paps */
+  margin-bottom: 30rpx;
+  border: 1rpx solid rgba(0, 0, 0, 0.02);
+  box-shadow: 0 20rpx 40rpx rgba(0, 0, 0, 0.03); /* 对齐 Portal 投影 */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.group-ultra-card:active {
+  background: #fafafa;
+  transform: translateY(2rpx);
+  box-shadow: 0 10rpx 20rpx rgba(0, 0, 0, 0.02);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 32rpx;
+}
+
+.group-brand {
+  width: 110rpx; /* 对齐 Portal 的 110rpx */
+  height: 110rpx;
+  background-color: #f8f9fb;
+  border-radius: 36rpx; /* 对齐 Portal 的 36rpx */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 30rpx;
+}
+
+.brand-char {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #333;
+}
+
+.group-main-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.ultra-group-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 8rpx;
+}
+
+.tag-row {
+  display: flex;
+  align-items: center;
+}
+
+.ultra-tag {
+  font-size: 20rpx;
+  padding: 2rpx 12rpx;
+  border-radius: 6rpx;
+  margin-right: 12rpx;
+  font-weight: 500;
+}
+
+.ultra-tag.owner {
+  background: linear-gradient(135deg, #07c160 0%, #38df86 100%);
+  color: #fff;
+}
+
+.ultra-tag.member {
+  background: #f0f0f0;
+  color: #666;
+}
+
+.ultra-tag-member {
+  font-size: 22rpx;
+  color: #999;
+}
+
+/* 邀请码信息块 - 对齐横向交互条样式 */
+.invite-box {
+  background: #f6f7f9;
+  border-radius: 30rpx; /* 对齐 Portal 交互条 */
+  padding: 10rpx 10rpx 10rpx 32rpx; /* 右侧留空给按钮，左侧 padding 略大 */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1rpx solid rgba(0,0,0,0.02);
+}
+
+.invite-label {
+  font-size: 22rpx; /* 略微缩小标签 */
+  color: #999;
+  margin-right: 16rpx;
+  white-space: nowrap;
+}
+
+.invite-code {
+  flex: 1;
+  font-size: 32rpx; /* 从 36rpx 缩小到 32rpx，防止拥挤 */
+  font-family: 'DIN Alternate', monospace;
+  color: #333;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.copy-hint {
+  display: flex;
+  align-items: center;
+  font-size: 24rpx;
+  color: #ffffff;
+  background: #1a1a1a;
+  height: 72rpx; /* 高度从 80 降至 72，更紧凑 */
+  padding: 0 28rpx;
+  border-radius: 20rpx;
+  font-weight: 600;
+  transition: all 0.2s;
+  flex-shrink: 0; /* 防止按钮被挤压 */
+  margin-left: 10rpx;
+}
+
+.copy-hint:active {
+  opacity: 0.8;
+}
+
+.copy-emoji {
+  display: none; /* 移除 Emoji，极简 */
+}
+
+/* 2. 创建/加入面板 - Portal 门户样式重构 */
+.action-view {
+  display: flex;
+  flex-direction: column;
+  padding: 20rpx 0;
+  animation: portalFadeUp 0.6s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+@keyframes portalFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(30rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.action-portal {
+  display: flex;
+  flex-direction: column;
+  gap: 30rpx;
+}
+
+/* 门户卡片基础 */
+.portal-card {
+  position: relative;
+  background: #ffffff;
+  border-radius: 48rpx;
+  padding: 50rpx 40rpx;
+  box-shadow: 0 20rpx 40rpx rgba(0, 0, 0, 0.03);
+  border: 1rpx solid rgba(0, 0, 0, 0.02);
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.portal-card:active {
+  transform: translateY(2rpx);
+  box-shadow: 0 10rpx 20rpx rgba(0, 0, 0, 0.02);
+}
+
+/* 装饰性 Badge */
+.portal-badge {
+  position: absolute;
+  top: 30rpx;
+  right: -40rpx;
+  background: #ff4d4f;
+  color: #fff;
+  font-size: 18rpx;
+  font-weight: 800;
+  padding: 4rpx 40rpx;
+  transform: rotate(45deg);
+  letter-spacing: 2rpx;
+  box-shadow: 0 4rpx 10rpx rgba(255, 77, 79, 0.2);
+}
+
+/* 主体内容布局 */
+.portal-main {
+  display: flex;
+  align-items: center;
+  margin-bottom: 40rpx;
+}
+
+.portal-icon-box {
+  width: 110rpx;
+  height: 110rpx;
+  background: #f8f9fb;
+  border-radius: 36rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 30rpx;
+  position: relative;
+}
+
+.portal-emoji {
+  font-size: 50rpx;
+}
+
+.portal-info {
+  flex: 1;
+}
+
+.portal-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+  display: block;
+  margin-bottom: 6rpx;
+}
+
+.portal-desc {
+  font-size: 24rpx;
+  color: #999;
+  display: block;
+}
+
+/* 交互区域 - 紧凑型输入 */
+.portal-interaction {
+  display: flex;
+  background: #f6f7f9;
+  border-radius: 30rpx;
+  padding: 10rpx;
+  align-items: center;
+  border: 1rpx solid transparent;
+  transition: all 0.3s;
+}
+
+.portal-interaction:focus-within {
+  background: #ffffff;
+  border-color: #07c160;
+  box-shadow: 0 0 0 4rpx rgba(7, 193, 96, 0.1);
+}
+
+.portal-input {
+  flex: 1;
+  height: 80rpx;
+  padding: 0 30rpx;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.portal-placeholder {
+  color: #bbb;
+}
+
+.portal-go-btn {
+  height: 80rpx;
+  padding: 0 40rpx;
+  background: #1a1a1a;
+  color: #fff;
+  border-radius: 24rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 !important; /* 覆盖默认 button 边距 */
+  width: auto !important;
+  box-shadow: 0 8rpx 16rpx rgba(0, 0, 0, 0.1);
+}
+
+.portal-go-btn.secondary {
+  background: #ffffff;
+  color: #1a1a1a;
+  border: 1rpx solid #e0e0e0;
+  box-shadow: none;
+}
+
+.portal-go-btn:active {
+  opacity: 0.8;
+  transform: scale(0.96);
+}
+
+/* 现代感分隔线 */
+.portal-separator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10rpx 0;
+}
+
+.sep-line {
+  flex: 1;
+  height: 2rpx;
+  background: linear-gradient(90deg, transparent, #e0e0e0, transparent);
+}
+
+.sep-text {
+  font-size: 20rpx;
+  color: #ccc;
+  margin: 0 30rpx;
+  font-weight: 600;
+  letter-spacing: 4rpx;
+}
+
+/* 个性化卡片样式 - 已移除侧边线，改为微光泽感 */
+.create-portal {
+  /* 基础样式继承自 .portal-card */
+}
+
+.join-portal {
+  /* 基础样式继承自 .portal-card */
+}
+
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 80rpx 0;
+}
+
+.empty-icon-box {
+  width: 120rpx;
+  height: 120rpx;
+  background: #f5f5f5;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 30rpx;
+}
+
+.empty-emoji {
+  font-size: 50rpx;
+  opacity: 0.3;
+  filter: grayscale(100%);
+}
+
+.empty-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+  display: block;
+  margin-bottom: 12rpx;
+}
+
+.empty-desc {
+  font-size: 26rpx;
+  color: #999;
+  display: block;
+  margin-bottom: 40rpx;
+}
+
+.empty-btn {
+  display: inline-block;
+  background: linear-gradient(135deg, #07c160 0%, #38df86 100%);
+  color: #fff;
+  font-size: 26rpx;
+  padding: 16rpx 48rpx;
+  border-radius: 40rpx;
+  box-shadow: 0 4rpx 12rpx rgba(7, 193, 96, 0.2);
+}
+
+/* 成员列表弹窗 - 纯白上拉风格 */
+.ultra-modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  visibility: hidden;
+  opacity: 0;
+  transition: all 0.3s;
+}
+
+.ultra-modal.show {
+  visibility: visible;
+  opacity: 1;
+}
+
+.modal-body {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: #ffffff;
+  border-radius: 40rpx 40rpx 0 0;
+  padding: 40rpx;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  box-shadow: 0 -10rpx 40rpx rgba(0,0,0,0.05);
+}
+
+.ultra-modal.show .modal-body {
+  transform: translateY(0);
+}
+
+.modal-indicator {
+  width: 80rpx;
+  height: 8rpx;
+  background: #e0e0e0;
+  border-radius: 4rpx;
+  margin: 0 auto 40rpx;
+}
+
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 30rpx;
+}
+
+.modal-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+  display: block;
+}
+
+.modal-subtitle {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 8rpx;
+  display: block;
+}
+
+.modal-close-btn {
+  width: 60rpx;
+  height: 60rpx;
+  background: #f5f5f5;
+  border-radius: 50%;
+  position: relative;
+}
+
+.modal-close-btn::before, .modal-close-btn::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 24rpx; height: 3rpx;
+  background: #999;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.modal-close-btn::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.member-scroll-view {
+  max-height: 60vh;
+}
+
+.ultra-member-item {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #f9f9f9;
+}
+
+.member-avatar-pro {
+  width: 88rpx;
+  height: 88rpx;
+  background: #f0f2f5;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  color: #666;
+  font-weight: 600;
+  margin-right: 24rpx;
+  position: relative;
+  overflow: visible; /* 允许皇冠溢出 */
+}
+
+.member-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.owner-badge {
+  position: absolute;
+  bottom: -4rpx; 
+  right: -4rpx;
+  font-size: 24rpx;
+  background: #fff;
+  border-radius: 50%;
+  z-index: 2; /* 确保在图片之上 */
+  box-shadow: 0 2rpx 4rpx rgba(0,0,0,0.1);
+  width: 32rpx;
+  height: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.member-core {
+  flex: 1;
+}
+
+.member-nickname {
+  font-size: 30rpx;
+  color: #333;
+  font-weight: 500;
+  display: block;
+}
+
+.member-join-date {
+  font-size: 22rpx;
+  color: #bbb;
+  margin-top: 4rpx;
+}
+
+.member-status-tag {
+  font-size: 22rpx;
+  color: #999;
+  background: #f5f5f5;
+  padding: 4rpx 12rpx;
+  border-radius: 6rpx;
+}
+
+.member-status-tag.is-owner {
+  color: #333;
+  background: #e8e8e8;
+  font-weight: 500;
+}

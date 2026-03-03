@@ -1,0 +1,217 @@
+<wxs module="utils">
+  var getGroupName = function(groups, id) {
+    if (!groups || !id) return '小组账本';
+    for (var i = 0; i < groups.length; i++) {
+        if (groups[i].id === id) return groups[i].name;
+    }
+    return '小组账本';
+  }
+  module.exports = {
+    getGroupName: getGroupName
+  };
+</wxs>
+<view class="container">
+
+  <!-- 核心资产概览卡片 (极简高级感) -->
+  <view class="summary-card">
+    <view class="bill-switch-btn" bindtap="showBillTypeSwitch">
+      <view class="switch-icon">⇄</view>
+        <text class="switch-text">{{billType === 1 ? utils.getGroupName(myGroups, currentGroupId) : '个人账本'}}</text>
+    </view>
+    <view class="summary-main">
+      <text class="summary-label">本月结余</text>
+      <text class="summary-value">{{summary.balance}}</text>
+    </view>
+    <view class="summary-sub">
+      <view class="summary-item">
+        <text class="sub-label">本月收入</text>
+        <text class="sub-value income">+{{summary.totalIncome}}</text>
+      </view>
+      <view class="summary-item">
+        <text class="sub-label">本月支出</text>
+        <text class="sub-value expense">-{{summary.totalExpense}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 顶部分类筛选 (重排：全部优先) -->
+  <view class="filter-bar">
+    <view class="filter-item {{typeFilter == 0 ? 'active' : ''}}" bindtap="onTypeChange" data-type="0">全部</view>
+    <view class="filter-item {{typeFilter == 2 ? 'active' : ''}}" bindtap="onTypeChange" data-type="2">支出</view>
+    <view class="filter-item {{typeFilter == 1 ? 'active' : ''}}" bindtap="onTypeChange" data-type="1">收入</view>
+  </view>
+
+  <!-- 统计概览卡片 -->
+  <view class="fui-card">
+    <view class="fui-card-title" style="border-left-color: {{chartColor}};">{{chartTitle}}</view>
+    <view class="fui-card-content">
+      <!-- 真实图表 (直接展示，配合动画) -->
+      <canvas type="2d" id="lineChart" class="chart-container {{!loading ? 'fade-in' : ''}}" 
+        style="width: 100%; height: 300rpx; opacity: 0;"
+        hidden="{{showDetailPopup || showBillTypeModal}}"
+        bindtouchstart="handleChartTouch"
+        bindtouchmove="handleChartTouch"
+        bindtouchend="handleChartEnd">
+      </canvas>
+    </view>
+  </view>
+
+  <!-- 月度收支日历 -->
+  <view class="fui-card">
+    <view class="fui-card-title">月度收支日历</view>
+    <view class="fui-card-content">
+      <!-- 日历头部导航 -->
+      <view class="calendar-nav">
+        <view class="nav-btn" bindtap="changeMonth" data-delta="-1">
+          <view class="nav-arrow left"></view>
+        </view>
+        <view class="nav-title">{{currentYear}}年 {{currentMonth}}月</view>
+        <view class="nav-right-box">
+          <view class="nav-today" bindtap="goToday">今</view>
+          <view class="nav-btn" bindtap="changeMonth" data-delta="1">
+            <view class="nav-arrow right"></view>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 星期轴 -->
+      <view class="calendar-header">
+        <text wx:for="{{['日','一','二','三','四','五','六']}}" wx:key="*this">{{item}}</text>
+      </view>
+
+      <!-- 日历网格 (直接展示，配合动画) -->
+      <view class="calendar-grid {{!loading ? 'fade-in' : ''}}" style="opacity: 0;">
+        <block wx:for="{{calendarData}}" wx:key="index">
+          <view wx:if="{{item.empty}}" class="calendar-cell empty" style="animation-delay: {{index * 0.02}}s"></view>
+          <view wx:else 
+                class="calendar-cell {{item.type}} {{item.isToday ? 'is-today' : ''}}"
+                bindtap="showCalendarDetail" 
+                data-item="{{item}}"
+                style="animation-delay: {{index * 0.02}}s">
+            <text class="day-label">{{item.isToday ? '今' : item.day}}</text>
+            <text class="amount-label">{{item.hasData ? item.amountStr : '0.00'}}</text>
+          </view>
+        </block>
+      </view>
+    </view>
+  </view>
+
+  <!-- 明细列表卡片 (分组化重构) -->
+  <view class="fui-card">
+    <view class="fui-card-title">近期明细</view>
+    <view class="fui-card-content">
+      <block wx:for="{{groupedTransactions}}" wx:for-item="group" wx:for-index="groupIndex" wx:key="date">
+        <view class="group-header">
+           <text class="group-date">{{group.date}}</text>
+        </view>
+        <view class="fui-list">
+          <block wx:for="{{group.items}}" wx:key="id">
+            <movable-area class="list-row-area">
+                <movable-view class="list-row-content" 
+                            direction="horizontal" 
+                            damping="40" 
+                            x="{{item.x}}" 
+                            data-index="{{index}}"
+                            data-group-index="{{groupIndex}}"
+                            bindchange="onSwipeChange"
+                            bindtouchstart="onSwipeStart"
+                            bindtouchend="onSwipeEnd"
+                            style="width: calc(100% + 150rpx); display: flex;">
+                  
+                  <view class="fui-list-cell" style="flex: 1; padding-left: 20rpx;">
+                    <view class="cell-icon">{{item.icon}}</view>
+                    <view class="cell-info">
+                      <view class="cell-category">
+                        {{item.category}}
+                        <!-- 小组账本显示创建人 -->
+                        <image wx:if="{{item.creatorAvatar}}" class="creator-avatar" src="{{item.creatorAvatar}}" mode="aspectFill"></image>
+                        <text wx:elif="{{item.creatorName}}" class="creator-name">{{item.creatorName}}</text>
+                      </view>
+                      <text class="cell-time">{{item.note || '无备注'}}</text>
+                    </view>
+                    <view class="cell-amount {{item.type === 1 ? 'income' : 'expense'}}" style="margin-right: 30rpx;">
+                      {{item.type === 1 ? '+' : '-'}}{{item.amount}}
+                    </view>
+                  </view>
+
+                  <!-- 红色按钮放在 movable-view 内部末尾 -->
+                  <view class="delete-btn" catchtap="onDeleteTransaction" data-id="{{item.id}}" data-group-date="{{group.date}}">删除</view>
+                </movable-view>
+            </movable-area>
+          </block>
+        </view>
+      </block>
+      <view class="empty-tip" wx:if="{{!groupedTransactions.length && !loading}}">暂无记录</view>
+      <view class="empty-tip" wx:if="{{loading}}">加载中...</view>
+    </view>
+  </view>
+  <!-- 日历详情弹窗 (自定义高级弹窗) -->
+  <view class="base-modal {{showDetailPopup ? 'show' : ''}}" bindtap="closeDetailPopup">
+    <view class="detail-modal" catchtap="noop">
+      <view class="modal-header">
+        <text class="modal-title">{{detailDate}} 全天明细</text>
+        <view class="close-icon" bindtap="closeDetailPopup">×</view>
+      </view>
+      <scroll-view scroll-y class="modal-body">
+        <view class="detail-list" wx:if="{{selectedDateTransactions.length}}">
+          <view class="fui-list-cell" wx:for="{{selectedDateTransactions}}" wx:key="id">
+            <view class="cell-icon">{{item.icon}}</view>
+            <view class="cell-info">
+              <view class="cell-category">
+                {{item.category}}
+                <image wx:if="{{item.creatorAvatar}}" class="creator-avatar" src="{{item.creatorAvatar}}" mode="aspectFill"></image>
+                <text wx:elif="{{item.creatorName}}" class="creator-name">{{item.creatorName}}</text>
+              </view>
+              <text class="cell-time">{{item.note || '无备注'}}</text>
+            </view>
+            <view class="cell-right-box">
+              <view class="cell-amount {{item.type === 1 ? 'income' : 'expense'}}">
+                {{item.type === 1 ? '+' : '-'}}{{item.amount}}
+              </view>
+              <view class="cell-full-time">{{item.formattedTime}}</view>
+            </view>
+          </view>
+        </view>
+        <view class="empty-tip" style="padding: 100rpx 0" wx:else>当日暂无记账数据</view>
+      </scroll-view>
+      <view class="modal-footer">
+        <button class="fui-btn-primary" bindtap="closeDetailPopup">我知道了</button>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 账本切换弹窗 -->
+  <view class="base-modal {{showBillTypeModal ? 'show' : ''}}" bindtap="closeBillTypeModal">
+    <view class="bill-type-sheet" catchtap="noop">
+      <view class="sheet-header">切换账本类型</view>
+      <view class="sheet-options">
+        <!-- 个人账本 -->
+        <view class="sheet-item {{billType === 0 ? 'active' : ''}}" bindtap="onSwitchBillType" data-type="0">
+          <text class="item-icon">👤</text>
+          <text class="item-name">个人账本</text>
+          <text class="item-check" wx:if="{{billType === 0}}">✓</text>
+        </view>
+        
+        <view class="sheet-divider">我的小组</view>
+
+        <!-- 小组列表循环 -->
+        <block wx:if="{{myGroups.length > 0}}">
+          <view class="sheet-item {{billType === 1 && currentGroupId === item.id ? 'active' : ''}}" 
+                wx:for="{{myGroups}}" 
+                wx:key="id"
+                bindtap="onSwitchBillType" 
+                data-type="1" 
+                data-groupid="{{item.id}}">
+            <text class="item-icon">👥</text>
+            <text class="item-name">{{item.name}}</text>
+            <text class="item-check" wx:if="{{billType === 1 && currentGroupId === item.id}}">✓</text>
+          </view>
+        </block>
+        <block wx:else>
+           <view class="sheet-empty-tip" bindtap="navToSettings" data-url="/pages/group/index">暂无小组，去创建或加入 ></view>
+        </block>
+      </view>
+      <view class="sheet-cancel" bindtap="closeBillTypeModal">取消</view>
+    </view>
+  </view>
+</view>

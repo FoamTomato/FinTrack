@@ -1,0 +1,66 @@
+  <!-- 顶部渐变背景氛围感 -->
+  <view class="premium-bg"></view>
+
+  <view class="content-wrapper">
+    <!-- 高级感头部：缩减体积，增加统计感 -->
+    <view class="header-section">
+      <view class="parent-info-group">
+        <view class="icon-box">{{category.icon || '🏷️'}}</view>
+        <view class="text-box">
+          <text class="p-name">{{category.name}}</text>
+          <text class="p-type">{{category.type == 1 ? '收入' : '支出'}}账户 · 总计 24 笔</text>
+        </view>
+      </view>
+      <view class="header-action">
+        <text class="stats-label">管理中</text>
+      </view>
+    </view>
+
+    <!-- 子分类列表：采用无边框分块感 -->
+    <view class="main-list-section">
+      <view class="list-head">
+        <text class="l-title">下属明细</text>
+        <text class="l-count">{{subCategories.length}} 个子项</text>
+      </view>
+
+      <view class="list-container {{subCategories.length > 0 ? 'has-data' : ''}}">
+        <block wx:if="{{subCategories.length > 0}}">
+          <view class="list-item-pro" wx:for="{{subCategories}}" wx:key="id">
+            <view class="item-left">
+              <view class="dot-indicator"></view>
+              <text class="name">{{item.name}}</text>
+            </view>
+            <view class="item-right">
+              <text class="use-count">常用</text>
+              <view class="del-circle" bindtap="deleteSubCategory" data-id="{{item.id}}">
+                <text class="icon-x">✕</text>
+              </view>
+            </view>
+          </view>
+        </block>
+        
+        <view class="empty-placeholder" wx:else>
+          <view class="empty-icon">📂</view>
+          <text>还没有子分类，立即在下方添加</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 触底输入栏：浮动胶囊设计 -->
+  <view class="float-input-box">
+    <view class="glass-capsule">
+      <input 
+        class="capsule-input" 
+        placeholder="如：早午餐、零食..." 
+        placeholder-class="ph-style"
+        value="{{newSubName}}" 
+        bindinput="onInputSubName" 
+        confirm-type="send"
+        bindconfirm="addSubCategory"
+      />
+      <view class="capsule-btn" bindtap="addSubCategory">
+        <text>添加</text>
+      </view>
+    </view>
+  </view>
