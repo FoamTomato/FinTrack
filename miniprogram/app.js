@@ -1,14 +1,16 @@
 // app.js
 const API = require('./utils/api');
 
+/** 过滤已失效的微信默认头像等无效 URL */
+function validAvatar(url) {
+  if (!url) return '';
+  if (url.includes('mmbiz.qpic.cn/mmbiz/icTdbqWNOwBHc')) return '';
+  if (url.startsWith('http://tmp/')) return '';
+  return url;
+}
+
 App({
   onLaunch() {
-    // 云开发初始化（traceUser 用于云托管日志追踪用户）
-    wx.cloud.init({
-      env: 'prod-7giupeh49138bbcf',
-      traceUser: true
-    });
-
     this.globalData = {
       openid: '',        // 用户 openid
       userInfo: null,    // 用户信息（昵称、头像）
@@ -47,7 +49,7 @@ App({
       const cachedUser = wx.getStorageSync('userInfo');
       if (cachedUser && cachedUser.openid && cachedUser.nickname) {
         this.globalData.openid = cachedUser.openid;
-        this.globalData.userInfo = { nickname: cachedUser.nickname, avatarUrl: cachedUser.avatarUrl };
+        this.globalData.userInfo = { nickname: cachedUser.nickname, avatarUrl: validAvatar(cachedUser.avatarUrl) };
         this.globalData.isAuthorized = true;
         console.log('使用缓存用户信息:', cachedUser);
         this._notifyLoginCallbacks(true);
@@ -65,11 +67,12 @@ App({
       // 保存 openid 到全局
       this.globalData.openid = openid;
 
-      if (!isNew && nickname && avatarUrl) {
+      if (!isNew && nickname) {
         // 用户已授权，存储到缓存
-        const userInfo = { openid, nickname, avatarUrl };
+        const safeAvatar = validAvatar(avatarUrl);
+        const userInfo = { openid, nickname, avatarUrl: safeAvatar };
         wx.setStorage({ key: 'userInfo', data: userInfo });
-        this.globalData.userInfo = { nickname, avatarUrl };
+        this.globalData.userInfo = { nickname, avatarUrl: safeAvatar };
         this.globalData.isAuthorized = true;
       } else {
         // 未授权，需要在授权页完成授权
@@ -111,11 +114,11 @@ App({
    */
   async updateUserInfo(nickname, avatarUrl) {
     try {
-      const res = await API.userUpdate(nickname, avatarUrl);
+      const safeAvatar = validAvatar(avatarUrl);
+      const res = await API.userUpdate(nickname, safeAvatar);
       if (res.code === 0) {
-        this.globalData.userInfo = { nickname, avatarUrl };
-        // 更新缓存
-        const userInfo = { openid: this.globalData.openid, nickname, avatarUrl };
+        this.globalData.userInfo = { nickname, avatarUrl: safeAvatar };
+        const userInfo = { openid: this.globalData.openid, nickname, avatarUrl: safeAvatar };
         wx.setStorage({ key: 'userInfo', data: userInfo });
         return true;
       }

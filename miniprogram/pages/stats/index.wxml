@@ -39,7 +39,7 @@
           <image class="icon-arrow" src="/images/icons/arrow-down.png"></image>
         </view>
       </picker>
-      <view class="filter-action" bindtap="showFilter">
+      <view class="filter-action" bindtap="onShowFilter">
         <view class="filter-indicator" wx:if="{{quickKey !== 'month'}}"></view>
     
         <text class="filter-label">筛选</text>
@@ -87,7 +87,7 @@
         <view class="list-wrapper">
           <view class="category-row {{item.expanded ? 'expanded' : ''}}" 
                 wx:for="{{list}}" wx:key="name">
-            <view class="row-main" bindtap="toggleSub" data-index="{{index}}">
+            <view class="row-main" bindtap="onToggleSub" data-index="{{index}}">
               <view class="cat-icon">{{item.icon || '🏷️'}}</view>
               <view class="cat-body">
                 <view class="body-top">
@@ -121,7 +121,7 @@
       <view class="empty-holder" wx:if="{{!loading && list.length === 0}}">
         <image class="empty-img" src="/images/icons/empty_stats.png" mode="aspectFit"></image>
         <view class="empty-text">该时间段内暂无记账记录</view>
-        <button class="btn-go-add" bindtap="navToAdd">去记一笔</button>
+        <button class="btn-go-add" bindtap="onNavToAdd">去记一笔</button>
       </view>
     </view>
 
@@ -130,7 +130,7 @@
   </scroll-view>
 
   <!-- 筛选侧边/底部弹窗 (保留原有逻辑，优化视觉) -->
-  <view class="filter-modal {{showFilterModal ? 'show' : ''}}" bindtap="hideFilter">
+  <view class="filter-modal {{showFilterModal ? 'show' : ''}}" bindtap="onHideFilter">
     <view class="modal-content" catchtap="noop">
       <view class="modal-handle"></view>
       <view class="modal-title">筛选统计范围</view>
@@ -167,8 +167,8 @@
       </view>
 
       <view class="modal-footer">
-        <view class="btn-secondary" bindtap="hideFilter">关闭</view>
-        <view class="btn-primary" bindtap="confirmFilter">确认应用</view>
+        <view class="btn-secondary" bindtap="onHideFilter">关闭</view>
+        <view class="btn-primary" bindtap="onConfirmFilter">确认应用</view>
       </view>
     </view>
   </view>

@@ -1,7 +1,7 @@
 <view class="container">
   
-  <view class="user-card fui-card" bindtap="showBind">
-    <image class="user-avatar" src="{{userInfo.avatarUrl || '/images/icons/avatar.png'}}" mode="aspectFill"></image>
+  <view class="user-card fui-card" bindtap="onShowBind">
+    <image class="user-avatar" src="{{userInfo.avatarUrl || '/images/icons/avatar.png'}}" mode="aspectFill" binderror="onAvatarError"></image>
     <view class="user-info">
       <view class="name-row">
         <text class="user-name">{{userInfo.nickname || '未设置昵称'}}</text>
@@ -15,7 +15,7 @@
   <!-- 账本管理 -->
   <view class="fui-card settings-group">
     <view class="group-title">账本管理</view>
-    <view class="settings-item" bindtap="navTo" data-url="/pages/group/index">
+    <view class="settings-item" bindtap="onNavTo" data-url="/pages/group/index">
       <view class="item-left">
         <text class="item-icon">👥</text>
         <text class="item-label">我的小组</text>
@@ -25,7 +25,7 @@
         <view class="nav-arrow right"></view>
       </view>
     </view>
-    <view class="settings-item" bindtap="navTo" data-url="/pages/stats/index">
+    <view class="settings-item" bindtap="onNavTo" data-url="/pages/stats/index">
       <view class="item-left">
         <text class="item-icon">📊</text>
         <text class="item-label">统计分析</text>
@@ -40,7 +40,7 @@
   <!-- 数据配置 -->
   <view class="fui-card settings-group">
     <view class="group-title">数据配置</view>
-    <view class="settings-item" bindtap="navTo" data-url="/pages/category/index">
+    <view class="settings-item" bindtap="onNavTo" data-url="/pages/category/index">
       <view class="item-left">
         <text class="item-icon">🏷️</text>
         <text class="item-label">分类管理</text>
@@ -73,8 +73,8 @@
         <view class="modal-tips">提示：绑定后可享受更好的服务体验</view>
       </view>
       <view class="modal-footer">
-        <button class="btn-action cancel" bindtap="hideBind" wx:if="{{!userInfo.isNew}}">取消</button>
-        <button class="btn-action confirm {{userInfo.isNew ? 'full-width' : ''}}" bindtap="confirmBind">{{userInfo.isNew ? '完成并开始使用' : '确定保存'}}</button>
+        <button class="btn-action cancel" bindtap="onHideBind" wx:if="{{!userInfo.isNew}}">取消</button>
+        <button class="btn-action confirm {{userInfo.isNew ? 'full-width' : ''}}" bindtap="onConfirmBind">{{userInfo.isNew ? '完成并开始使用' : '确定保存'}}</button>
       </view>
     </view>
   </view>

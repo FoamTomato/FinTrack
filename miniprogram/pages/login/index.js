@@ -1,20 +1,20 @@
 const app = getApp();
+const Loading = require('../../utils/loading');
 
 Page({
+  /**
+   * 页面数据
+   */
   data: {
-    phase: 'welcome',   // 'welcome' | 'setup'
     avatarUrl: '',
     nickname: '',
     submitting: false,
     canSubmit: false
   },
 
-  /** 点击"使用微信账号登录"，进入信息填写阶段 */
-  handleStart() {
-    this.setData({ phase: 'setup' });
-  },
-
-  /** 选择微信头像（open-type="chooseAvatar" 回调） */
+  /**
+   * 事件处理 —— 选择微信头像
+   */
   onChooseAvatar(e) {
     const { avatarUrl } = e.detail;
     if (avatarUrl) {
@@ -23,7 +23,9 @@ Page({
     }
   },
 
-  /** 昵称输入（type="nickname" 支持自动填充微信昵称） */
+  /**
+   * 事件处理 —— 昵称输入
+   */
   onNicknameInput(e) {
     this.setData({ nickname: e.detail.value.trim() });
     this._updateCanSubmit();
@@ -34,28 +36,31 @@ Page({
     this.setData({ canSubmit: !!(avatarUrl && nickname) });
   },
 
-  /** 提交授权信息，完成登录 */
+  /**
+   * 事件处理 —— 提交授权（防重复）
+   */
   async handleSubmit() {
     if (this.data.submitting || !this.data.canSubmit) return;
 
     const { nickname, avatarUrl } = this.data;
     this.setData({ submitting: true });
 
+    Loading.show('登录中...');
     try {
-      wx.showLoading({ title: '登录中...' });
       const success = await app.updateUserInfo(nickname, avatarUrl);
-      wx.hideLoading();
 
       if (success) {
+        Loading.success('登录成功');
         wx.reLaunch({ url: '/pages/home/index' });
       } else {
-        wx.showToast({ title: '登录失败，请重试', icon: 'none' });
+        Loading.error('登录失败，请重试');
         this.setData({ submitting: false });
       }
     } catch (err) {
-      wx.hideLoading();
-      wx.showToast({ title: err.message || '登录失败', icon: 'none' });
+      Loading.error(err.message || '登录失败');
       this.setData({ submitting: false });
+    } finally {
+      Loading.hide();
     }
   }
 });

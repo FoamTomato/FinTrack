@@ -36,8 +36,6 @@ page {
   border-radius: 50%;
   background-color: #eee;
   margin-right: 30rpx;
-  /* 占位图效果 */
-  background-image: url('https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwBHcaS5u2otR7aaVfc8jK58H20d20N0d20N0d20N0/0'); 
   background-size: cover;
 }
 

@@ -32,7 +32,7 @@
             </view>
             <view class="item-right">
               <text class="use-count">常用</text>
-              <view class="del-circle" bindtap="deleteSubCategory" data-id="{{item.id}}">
+              <view class="del-circle" bindtap="onDeleteSubCategory" data-id="{{item.id}}">
                 <text class="icon-x">✕</text>
               </view>
             </view>
@@ -57,9 +57,9 @@
         value="{{newSubName}}" 
         bindinput="onInputSubName" 
         confirm-type="send"
-        bindconfirm="addSubCategory"
+        bindconfirm="onAddSubCategory"
       />
-      <view class="capsule-btn" bindtap="addSubCategory">
+      <view class="capsule-btn" bindtap="onAddSubCategory">
         <text>添加</text>
       </view>
     </view>

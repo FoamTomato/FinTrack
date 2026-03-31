@@ -9,10 +9,10 @@
 
   <!-- 顶部导航切换 (Segmented Control) -->
   <view class="tab-sc">
-    <view class="tab-item {{activeTab === 0 ? 'active' : ''}}" bindtap="switchTab" data-index="0">
+    <view class="tab-item {{activeTab === 0 ? 'active' : ''}}" bindtap="onSwitchTab" data-index="0">
       <view class="item-text">我的小组</view>
     </view>
-    <view class="tab-item {{activeTab === 1 ? 'active' : ''}}" bindtap="switchTab" data-index="1">
+    <view class="tab-item {{activeTab === 1 ? 'active' : ''}}" bindtap="onSwitchTab" data-index="1">
       <view class="item-text">创建 / 加入</view>
     </view>
     <view class="tab-slider" style="left: {{activeTab * 50}}%"></view>
@@ -29,10 +29,10 @@
         </view>
         <text class="empty-title">暂无小组</text>
         <text class="empty-desc">加入或创建一个小组，开启多人记账模式</text>
-        <button class="empty-btn" bindtap="switchTab" data-index="1">立即开启</button>
+        <button class="empty-btn" bindtap="onSwitchTab" data-index="1">立即开启</button>
       </view>
 
-      <view class="group-ultra-card" wx:for="{{myGroups}}" wx:key="id" bindtap="viewMembers" data-group="{{item}}">
+      <view class="group-ultra-card" wx:for="{{myGroups}}" wx:key="id" bindtap="onViewMembers" data-group="{{item}}">
         <view class="card-header">
           <view class="group-brand">
             <text class="brand-char">{{item.name[0]}}</text>
@@ -48,7 +48,7 @@
         </view>
         
         <view class="card-footer-info">
-          <view class="invite-box" catchtap="copyCode" data-code="{{item.invite_code}}">
+          <view class="invite-box" catchtap="onCopyCode" data-code="{{item.invite_code}}">
             <text class="invite-label">邀请码</text>
             <text class="invite-code">{{item.invite_code}}</text>
             <view class="copy-hint">
@@ -128,7 +128,7 @@
   </view>
 
   <!-- 成员列表弹窗 (Ultra Modal) -->
-  <view class="ultra-modal {{showMembersModal ? 'show' : ''}}" wx:if="{{showMembersModal}}" bindtap="closeMembersModal">
+  <view class="ultra-modal {{showMembersModal ? 'show' : ''}}" wx:if="{{showMembersModal}}" bindtap="onCloseMembersModal">
     <view class="modal-body" catchtap="stopPop">
       <view class="modal-indicator"></view>
       <view class="modal-head">
@@ -136,7 +136,7 @@
           <text class="modal-title">{{currentGroup.name}}</text>
           <text class="modal-subtitle">共有 {{currentMembers.length}} 位成员</text>
         </view>
-        <view class="modal-close-btn" bindtap="closeMembersModal"></view>
+        <view class="modal-close-btn" bindtap="onCloseMembersModal"></view>
       </view>
       
       <scroll-view scroll-y class="member-scroll-view">

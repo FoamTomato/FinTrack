@@ -1,327 +1,347 @@
-const app = getApp();
-const { request } = require('../../utils/request');
+const API = require('../../utils/api');
+const Loading = require('../../utils/loading');
 
 Page({
+  /**
+   * 页面数据
+   */
   data: {
-    scope: 0, // 0: 个人; 1: 小组
-    groups: [], // 我的小组列表
-    currentGroupIndex: 0, // 当前选中的小组索引
+    scope: 0,
+    groups: [],
+    currentGroupIndex: 0,
     groupId: null,
-
-    // 日期相关
-    dateMode: 'month', // 'month' | 'range'
-    currentMonth: '', // YYYY-MM
-    startDate: '', // YYYY-MM-DD
-    endDate: '',   // YYYY-MM-DD
+    dateMode: 'month',
+    currentMonth: '',
+    startDate: '',
+    endDate: '',
     displayDate: '',
-    
-    // 筛选弹窗
     showFilterModal: false,
     tempStartDate: '',
     tempEndDate: '',
-    quickKey: 'month', // month, 1m, 3m, 6m, 1y, custom
-    type: 2, // 1: 收入, 2: 支出
-
+    quickKey: 'month',
+    type: 2,
     total: 0,
     list: [],
     loading: false,
     chartColors: ['#07C160', '#FFC107', '#1989FA', '#FF9800', '#9C27B0', '#E91E63', '#009688', '#E0E0E0'],
     incomeColors: ['#FF9800', '#FF5722', '#FFC107', '#FFEB3B', '#795548', '#607D8B'],
-    barChartData: [] // 纯 WXML 柱状图数据
+    barChartData: []
   },
 
-  onLoad(options) {
-    // ... load logic unchanged
+  /**
+   * 生命周期 —— 只做调度
+   */
+  onLoad() {
+    // 初始化日期为当月
     const today = new Date();
     const yyyy = today.getFullYear();
     const mm = (today.getMonth() + 1).toString().padStart(2, '0');
     const currentMonth = `${yyyy}-${mm}`;
-    
+
     this.setData({
-        currentMonth,
-        startDate: `${currentMonth}-01`,
-        endDate: this.getLastDayOfMonth(yyyy, today.getMonth() + 1),
-        displayDate: `${yyyy}年${mm}月`,
-        quickKey: 'month'
+      currentMonth,
+      startDate: `${currentMonth}-01`,
+      endDate: this.getLastDayOfMonth(yyyy, today.getMonth() + 1),
+      displayDate: `${yyyy}年${mm}月`,
+      quickKey: 'month'
     });
 
     this.fetchData();
   },
 
-  // 获取某月最后一天
+  /**
+   * 数据转换 —— 日期工具
+   */
   getLastDayOfMonth(year, month) {
-      const d = new Date(year, month, 0);
-      return `${year}-${String(month).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const d = new Date(year, month, 0);
+    return `${year}-${String(month).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   },
 
   formatDate(d) {
-      return d.toISOString().split('T')[0];
+    return d.toISOString().split('T')[0];
   },
 
-  // ---------------- Scope & Group ----------------
-
+  /**
+   * 事件处理 —— 个人/小组切换
+   */
   onScopeChange(e) {
-      const scope = parseInt(e.currentTarget.dataset.scope);
-      if (scope === this.data.scope) return;
+    const scope = parseInt(e.currentTarget.dataset.scope);
+    if (scope === this.data.scope) return;
 
-      this.setData({ scope, list: [], total: 0 });
+    this.setData({ scope, list: [], total: 0 });
 
-      if (scope === 1) {
-          // 切换到小组 -> 加载小组列表
-          if (this.data.groups.length === 0) {
-              this.fetchMyGroups();
-          } else {
-              // 默认选第一个
-              const firstGroup = this.data.groups[0];
-              this.setData({ 
-                  groupId: firstGroup.id,
-                  currentGroupIndex: 0
-              }, () => this.fetchData());
-          }
+    if (scope === 1) {
+      if (this.data.groups.length === 0) {
+        this.fetchMyGroups();
       } else {
-          // 切换回个人
-          this.setData({ groupId: null }, () => this.fetchData());
+        const firstGroup = this.data.groups[0];
+        this.setData({
+          groupId: firstGroup.id,
+          currentGroupIndex: 0
+        }, () => this.fetchData());
       }
+    } else {
+      this.setData({ groupId: null }, () => this.fetchData());
+    }
   },
 
+  /**
+   * 数据获取 —— 小组列表
+   */
   async fetchMyGroups() {
-      try {
-          const res = await request('/api/group/list', 'GET');
-          if (res.code === 0 && res.data && res.data.length > 0) {
-              this.setData({
-                  groups: res.data,
-                  groupId: res.data[0].id,
-                  currentGroupIndex: 0
-              }, () => {
-                  this.fetchData();
-              });
-          } else {
-              wx.showToast({ title: '暂无小组', icon: 'none' });
-          }
-      } catch (err) {
-          console.error("Fetch groups failed", err);
+    try {
+      const res = await API.getGroups();
+      if (res.code === 0 && res.data && res.data.length > 0) {
+        this.setData({
+          groups: res.data,
+          groupId: res.data[0].id,
+          currentGroupIndex: 0
+        }, () => this.fetchData());
+      } else {
+        Loading.toast('暂无小组');
       }
+    } catch (err) {
+      console.error('fetchMyGroups failed:', err);
+    }
   },
 
+  /**
+   * 事件处理 —— 小组切换
+   */
   onGroupChange(e) {
-      const idx = parseInt(e.currentTarget.dataset.index);
-      const group = this.data.groups[idx];
-      if (group && group.id !== this.data.groupId) {
-          this.setData({
-              currentGroupIndex: idx,
-              groupId: group.id
-          }, () => {
-              this.fetchData();
-          });
-      }
-  },
-
-  // ---------------- Date Filter ----------------
-
-  // 顶部日期 Picker (Month)
-  onMonthPickerChange(e) {
-      const val = e.detail.value; // YYYY-MM
-      const [y, m] = val.split('-');
-      const year = parseInt(y);
-      const month = parseInt(m);
-      
+    const idx = parseInt(e.currentTarget.dataset.index);
+    const group = this.data.groups[idx];
+    if (group && group.id !== this.data.groupId) {
       this.setData({
-          currentMonth: val,
-          startDate: `${val}-01`,
-          endDate: this.getLastDayOfMonth(year, month),
-          displayDate: `${y}年${m}月`,
-          quickKey: 'month',
-          dateMode: 'month'
+        currentGroupIndex: idx,
+        groupId: group.id
       }, () => this.fetchData());
+    }
   },
 
-  showFilter() {
-      this.setData({
-          showFilterModal: true,
-          tempStartDate: this.data.startDate,
-          tempEndDate: this.data.endDate,
-          tempYear: this.data.quickKey === 'year' ? this.data.startDate.split('-')[0] : ''
-      });
+  /**
+   * 事件处理 —— 月份选择器
+   */
+  onMonthPickerChange(e) {
+    const val = e.detail.value;
+    const [y, m] = val.split('-');
+    const year = parseInt(y);
+    const month = parseInt(m);
+
+    this.setData({
+      currentMonth: val,
+      startDate: `${val}-01`,
+      endDate: this.getLastDayOfMonth(year, month),
+      displayDate: `${y}年${m}月`,
+      quickKey: 'month',
+      dateMode: 'month'
+    }, () => this.fetchData());
   },
 
-  hideFilter() {
-      this.setData({ showFilterModal: false });
+  /**
+   * 事件处理 —— 筛选弹窗
+   */
+  onShowFilter() {
+    this.setData({
+      showFilterModal: true,
+      tempStartDate: this.data.startDate,
+      tempEndDate: this.data.endDate,
+      tempYear: this.data.quickKey === 'year' ? this.data.startDate.split('-')[0] : ''
+    });
+  },
+
+  onHideFilter() {
+    this.setData({ showFilterModal: false });
   },
 
   onQuickFilter(e) {
-      const key = e.currentTarget.dataset.key;
-      let start, end;
-      const today = new Date();
-      
-      if (key === 'month') {
-          // 本月
-          const y = today.getFullYear();
-          const m = today.getMonth() + 1;
-          start = `${y}-${String(m).padStart(2, '0')}-01`;
-          end = this.getLastDayOfMonth(y, m);
-      } else if (key === 'year') {
-          // 本年
-          const y = today.getFullYear();
-          start = `${y}-01-01`;
-          end = this.formatDate(today);
-      } else {
-          end = this.formatDate(today);
-          const s = new Date();
-          if (key === '1m') s.setMonth(s.getMonth() - 1);
-          else if (key === '3m') s.setMonth(s.getMonth() - 3);
-          else if (key === '1y') s.setFullYear(s.getFullYear() - 1);
-          start = this.formatDate(s);
-      }
+    const key = e.currentTarget.dataset.key;
+    let start, end;
+    const today = new Date();
 
-      this.setData({
-          tempStartDate: start,
-          tempEndDate: end,
-          quickKey: key,
-          tempYear: '' // 切换快捷筛选时清空选中年份
-      });
+    if (key === 'month') {
+      const y = today.getFullYear();
+      const m = today.getMonth() + 1;
+      start = `${y}-${String(m).padStart(2, '0')}-01`;
+      end = this.getLastDayOfMonth(y, m);
+    } else if (key === 'year') {
+      const y = today.getFullYear();
+      start = `${y}-01-01`;
+      end = this.formatDate(today);
+    } else {
+      end = this.formatDate(today);
+      const s = new Date();
+      if (key === '1m') s.setMonth(s.getMonth() - 1);
+      else if (key === '3m') s.setMonth(s.getMonth() - 3);
+      else if (key === '1y') s.setFullYear(s.getFullYear() - 1);
+      start = this.formatDate(s);
+    }
+
+    this.setData({
+      tempStartDate: start,
+      tempEndDate: end,
+      quickKey: key,
+      tempYear: ''
+    });
   },
 
-  // 新增：年选择器变更处理
   onYearPickerChange(e) {
     const year = e.detail.value;
     this.setData({
-        tempYear: year,
-        tempStartDate: `${year}-01-01`,
-        tempEndDate: `${year}-12-31`,
-        quickKey: 'year' // 统一使用 year 类型的标识
+      tempYear: year,
+      tempStartDate: `${year}-01-01`,
+      tempEndDate: `${year}-12-31`,
+      quickKey: 'year'
     });
   },
 
   onTempDateChange(e) {
-      const type = e.currentTarget.dataset.type; // start or end
-      const val = e.detail.value;
-      
-      this.setData({
-          [`temp${type === 'start' ? 'Start' : 'End'}Date`]: val,
-          quickKey: 'custom',
-          tempYear: '' // 切换自定义日期时清空年份
-      });
+    const type = e.currentTarget.dataset.type;
+    const val = e.detail.value;
+
+    this.setData({
+      [`temp${type === 'start' ? 'Start' : 'End'}Date`]: val,
+      quickKey: 'custom',
+      tempYear: ''
+    });
   },
 
-  confirmFilter() {
-      const { tempStartDate, tempEndDate, quickKey } = this.data;
-      if (!tempStartDate || !tempEndDate) {
-          return wx.showToast({ title: '请选择完整日期', icon: 'none' });
-      }
-      if (tempStartDate > tempEndDate) {
-          return wx.showToast({ title: '开始日期不能晚于结束日期', icon: 'none' });
-      }
+  /**
+   * 事件处理 —— 确认筛选
+   */
+  onConfirmFilter() {
+    const { tempStartDate, tempEndDate, quickKey } = this.data;
+    if (!tempStartDate || !tempEndDate) {
+      return Loading.toast('请选择完整日期');
+    }
+    if (tempStartDate > tempEndDate) {
+      return Loading.toast('开始日期不能晚于结束日期');
+    }
 
-      let displayDate = '';
-      const [startYear, startMonth, startDay] = tempStartDate.split('-');
-      const [endYear, endMonth, endDay] = tempEndDate.split('-');
-      const today = new Date();
-      const currentYear = today.getFullYear().toString();
+    const displayDate = this.formatDisplayDate(tempStartDate, tempEndDate, quickKey);
 
-      if (quickKey === 'month') {
-           displayDate = `${startYear}年${startMonth}月`;
-      } else if (quickKey === 'year') {
-           displayDate = `${startYear}年`;
-      } else {
-           // 精确日期范围美化
-           const startStr = startYear === currentYear ? `${startMonth}.${startDay}` : `${startYear.substring(2)}.${startMonth}.${startDay}`;
-           const endStr = endYear === currentYear ? `${endMonth}.${endDay}` : `${endYear.substring(2)}.${endMonth}.${endDay}`;
-           displayDate = `${startStr} - ${endStr}`;
-      }
-
-      this.setData({
-          startDate: tempStartDate,
-          endDate: tempEndDate,
-          displayDate,
-          quickKey,
-          showFilterModal: false,
-          dateMode: (quickKey === 'month' || quickKey === 'year') ? quickKey : 'range'
-      }, () => {
-          this.fetchData();
-      });
+    this.setData({
+      startDate: tempStartDate,
+      endDate: tempEndDate,
+      displayDate,
+      quickKey,
+      showFilterModal: false,
+      dateMode: (quickKey === 'month' || quickKey === 'year') ? quickKey : 'range'
+    }, () => this.fetchData());
   },
 
+  /**
+   * 数据转换 —— 格式化展示日期
+   */
+  formatDisplayDate(startDate, endDate, quickKey) {
+    const [startYear, startMonth] = startDate.split('-');
+    const [endYear, endMonth, endDay] = endDate.split('-');
+    const currentYear = new Date().getFullYear().toString();
+
+    if (quickKey === 'month') return `${startYear}年${startMonth}月`;
+    if (quickKey === 'year') return `${startYear}年`;
+
+    const startDay = startDate.split('-')[2];
+    const startStr = startYear === currentYear ? `${startMonth}.${startDay}` : `${startYear.substring(2)}.${startMonth}.${startDay}`;
+    const endStr = endYear === currentYear ? `${endMonth}.${endDay}` : `${endYear.substring(2)}.${endMonth}.${endDay}`;
+    return `${startStr} - ${endStr}`;
+  },
+
+  // 阻止冒泡
   noop() {},
 
-  toggleSub(e) {
+  /**
+   * 事件处理 —— 展开/折叠子分类
+   */
+  onToggleSub(e) {
     const idx = e.currentTarget.dataset.index;
     const list = this.data.list;
     list.forEach((item, i) => {
-        if(i === idx) item.expanded = !item.expanded;
-        else item.expanded = false; // Accordion effect
+      if (i === idx) item.expanded = !item.expanded;
+      else item.expanded = false;
     });
     this.setData({ list });
   },
 
-  navToAdd() {
+  /**
+   * 事件处理 —— 导航
+   */
+  onNavToAdd() {
     wx.switchTab({ url: '/pages/add/index' });
   },
 
-
+  /**
+   * 事件处理 —— 收支类型切换
+   */
   onTypeChange(e) {
-      if (e.target.dataset.type) { // click on text
-         const type = parseInt(e.target.dataset.type);
-         if (type !== this.data.type) {
-             this.setData({ type, list: [], total: 0 }, () => {
-                 this.fetchData();
-             });
-         }
+    if (e.target.dataset.type) {
+      const type = parseInt(e.target.dataset.type);
+      if (type !== this.data.type) {
+        this.setData({ type, list: [], total: 0 }, () => this.fetchData());
       }
-  },
-
-  // ... other methods ...
-
-  async fetchData() {
-    this.setData({ loading: true });
-    
-    try {
-        const res = await request('/api/transaction/analysis', 'GET', {
-            startDate: this.data.startDate,
-            endDate: this.data.endDate,
-            scope: this.data.scope,
-            groupId: this.data.groupId,
-            type: this.data.type // Use dynamic type
-        });
-
-        if (res.code === 0) {
-            const { total, list } = res.data;
-            const processedList = list.map(item => ({ ...item, expanded: false }));
-            this.setData({ total, list: processedList });
-            
-            this.drawBarChart(processedList);
-        }
-    } catch (err) {
-        console.error('Fetch analysis failed', err);
-    } finally {
-        this.setData({ loading: false });
     }
   },
 
-  /** 构建柱状图数据（纯 WXML 驱动，避免 canvas 原生组件层级问题） */
-  drawBarChart(list) {
-      if (!list || list.length === 0) {
-          this.setData({ barChartData: [] });
-          return;
-      }
+  /**
+   * 数据获取 —— 分类分析
+   */
+  async fetchData() {
+    this.setData({ loading: true });
 
-      const drawList = list.slice(0, 6);
-      const maxVal = Math.max(...drawList.map(item => parseFloat(item.amount))) || 1;
-      const colors = this.data.type === 1 ? this.data.incomeColors : this.data.chartColors;
-
-      const barChartData = drawList.map((item, index) => {
-          const amount = parseFloat(item.amount);
-          const heightPercent = Math.max((amount / maxVal) * 100, 2); // 最低 2% 保证可见
-          const displayName = item.name.length > 4 ? item.name.substring(0, 3) + '..' : item.name;
-
-          return {
-              name: item.name,
-              displayName,
-              displayAmount: amount.toFixed(0),
-              heightPercent: heightPercent.toFixed(1),
-              color: colors[index % colors.length]
-          };
+    try {
+      // 调用分析接口
+      const res = await API.getAnalysis({
+        startDate: this.data.startDate,
+        endDate: this.data.endDate,
+        scope: this.data.scope,
+        groupId: this.data.groupId,
+        type: this.data.type
       });
 
-      this.setData({ barChartData });
+      if (res.code === 0) {
+        const { total, list } = res.data;
+
+        // 格式化列表数据
+        const processedList = list.map(item => ({ ...item, expanded: false }));
+        this.setData({ total, list: processedList });
+
+        // 构建柱状图
+        this.buildBarChartData(processedList);
+      }
+    } catch (err) {
+      console.error('fetchData failed:', err);
+    } finally {
+      this.setData({ loading: false });
+    }
+  },
+
+  /**
+   * 数据转换 —— 柱状图数据（纯 WXML 驱动）
+   */
+  buildBarChartData(list) {
+    if (!list || list.length === 0) {
+      this.setData({ barChartData: [] });
+      return;
+    }
+
+    const drawList = list.slice(0, 6);
+    const maxVal = Math.max(...drawList.map(item => parseFloat(item.amount))) || 1;
+    const colors = this.data.type === 1 ? this.data.incomeColors : this.data.chartColors;
+
+    const barChartData = drawList.map((item, index) => {
+      const amount = parseFloat(item.amount);
+      const heightPercent = Math.max((amount / maxVal) * 100, 2);
+      const displayName = item.name.length > 4 ? item.name.substring(0, 3) + '..' : item.name;
+
+      return {
+        name: item.name,
+        displayName,
+        displayAmount: amount.toFixed(0),
+        heightPercent: heightPercent.toFixed(1),
+        color: colors[index % colors.length]
+      };
+    });
+
+    this.setData({ barChartData });
   }
 });

@@ -1,15 +1,16 @@
-// pages/add/index.js
 const app = getApp();
-const { request } = require('../../utils/request');
+const API = require('../../utils/api');
+const Loading = require('../../utils/loading');
 
 Page({
+  /**
+   * 页面数据
+   */
   data: {
-    transactionType: 2, // 1: 收入, 2: 支出 (默认支出)
+    transactionType: 2,
     amount: '',
     date: '',
     note: '',
-    
-    // 分类相关 (二级联动)
     multiArray: [[], []],
     multiIndex: [0, 0],
     categoryTree: [],
@@ -17,11 +18,12 @@ Page({
     selectedCategoryId: null
   },
 
-  onLoad(options) {
+  /**
+   * 生命周期 —— 只做调度
+   */
+  onLoad() {
     const today = new Date().toISOString().split('T')[0];
-    this.setData({
-      date: today
-    });
+    this.setData({ date: today });
     this.loadCategories();
   },
 
@@ -31,62 +33,61 @@ Page({
     }
   },
 
-  // 加载分类数据
+  /**
+   * 数据获取 —— 分类树
+   */
   async loadCategories() {
     try {
-      const type = this.data.transactionType;
-      const res = await request('/api/category/tree', 'GET', { type });
-      if (res.code === 0) {
-        const tree = res.data || [];
-        if (tree.length === 0) {
-          this.setData({
-            categoryTree: [],
-            multiArray: [[], []],
-            selectedCategoryName: '',
-            selectedCategoryId: null
-          });
-          return;
-        }
+      // 步骤1：请求分类树
+      const res = await API.getCategoryTree(this.data.transactionType);
+      if (res.code !== 0) return;
 
-        // 构建两列数据
-        const firstColumn = tree.map(c => c.name);
-        const secondColumn = (tree[0].children && tree[0].children.length > 0) 
-          ? tree[0].children.map(c => c.name)
-          : ['无子分类'];
-
+      const tree = res.data || [];
+      if (tree.length === 0) {
         this.setData({
-          categoryTree: tree,
-          multiArray: [firstColumn, secondColumn],
-          multiIndex: [0, 0],
-          // 默认选中第一个子分类
-          selectedCategoryName: tree[0].children && tree[0].children.length > 0 ? tree[0].children[0].name : '',
-          selectedCategoryId: tree[0].children && tree[0].children.length > 0 ? tree[0].children[0].id : null
+          categoryTree: [],
+          multiArray: [[], []],
+          selectedCategoryName: '',
+          selectedCategoryId: null
         });
+        return;
       }
+
+      // 步骤2：构建两列联动数据
+      const firstColumn = tree.map(c => c.name);
+      const firstChildren = tree[0].children || [];
+      const secondColumn = firstChildren.length > 0
+        ? firstChildren.map(c => c.name)
+        : ['无子分类'];
+
+      // 步骤3：更新视图
+      this.setData({
+        categoryTree: tree,
+        multiArray: [firstColumn, secondColumn],
+        multiIndex: [0, 0],
+        selectedCategoryName: firstChildren.length > 0 ? firstChildren[0].name : '',
+        selectedCategoryId: firstChildren.length > 0 ? firstChildren[0].id : null
+      });
     } catch (err) {
-      console.error('加载分类失败', err);
+      console.error('loadCategories failed:', err);
     }
   },
 
-  // 切换类型 (新逻辑)
-  changeTransactionType(e) {
+  /**
+   * 事件处理 —— 切换收支类型
+   */
+  onChangeTransactionType(e) {
     const type = parseInt(e.currentTarget.dataset.type);
     if (type === this.data.transactionType) return;
 
-    this.setData({
-      transactionType: type
-    }, () => {
-      // 切换类型后重新加载分类
+    this.setData({ transactionType: type }, () => {
       this.loadCategories();
     });
   },
 
-  // 兼容旧逻辑
-  onTypeChange(e) {
-    this.changeTransactionType({ currentTarget: { dataset: { type: e.detail.value } } });
-  },
-
-  // 分类列变动
+  /**
+   * 事件处理 —— 分类列联动
+   */
   onCategoryColumnChange(e) {
     const { column, value } = e.detail;
     const tree = this.data.categoryTree;
@@ -95,25 +96,24 @@ Page({
     multiIndex[column] = value;
 
     if (column === 0) {
-      // 第一列变动，联动第二列
       multiIndex[1] = 0;
       const children = tree[value].children || [];
-      const secondColumn = children.length > 0 
+      const secondColumn = children.length > 0
         ? children.map(c => c.name)
         : ['无子分类'];
-      
+
       this.setData({
         'multiArray[1]': secondColumn,
-        'multiIndex': multiIndex
+        multiIndex
       });
     } else {
-      this.setData({
-        'multiIndex': multiIndex
-      });
+      this.setData({ multiIndex });
     }
   },
 
-  // 分类确定选择
+  /**
+   * 事件处理 —— 分类确定选择
+   */
   onCategoryChange(e) {
     const [pIdx, cIdx] = e.detail.value;
     const tree = this.data.categoryTree;
@@ -121,7 +121,7 @@ Page({
     const child = parent.children && parent.children[cIdx];
 
     if (!child) {
-      return wx.showToast({ title: '请选择二级分类', icon: 'none' });
+      return Loading.toast('请选择二级分类');
     }
 
     this.setData({
@@ -131,29 +131,37 @@ Page({
     });
   },
 
-  // 日期选择
+  /**
+   * 事件处理 —— 日期选择
+   */
   onDateChange(e) {
-    this.setData({
-      date: e.detail.value
-    });
+    this.setData({ date: e.detail.value });
   },
 
-  // 提交
+  /**
+   * 事件处理 —— 提交记账（防重复）
+   */
   async onSubmit(e) {
+    // 防重复提交
+    if (this._submitting) return;
+
     const { amount, note } = e.detail.value;
     const { transactionType, selectedCategoryName, selectedCategoryId, date } = this.data;
 
+    // 参数校验
     if (!amount) {
-      return wx.showToast({ title: '请输入金额', icon: 'none' });
+      return Loading.toast('请输入金额');
     }
     if (!selectedCategoryName) {
-      return wx.showToast({ title: '请选择分类', icon: 'none' });
+      return Loading.toast('请选择分类');
     }
 
-    wx.showLoading({ title: '保存中...' });
+    this._submitting = true;
+    Loading.show('保存中...');
 
     try {
-      const res = await request('/api/transaction/create', 'POST', {
+      // 调用 API 创建交易
+      const res = await API.createTransaction({
         type: transactionType || 2,
         amount: parseFloat(amount) || 0,
         category: selectedCategoryName || '未分类',
@@ -163,21 +171,17 @@ Page({
       });
 
       if (res.code === 0) {
-        wx.showToast({ title: '记账成功' });
-        this.setData({
-          amount: '',
-          note: ''
-        });
+        Loading.success('记账成功');
+        this.setData({ amount: '', note: '' });
       } else {
-        wx.showToast({ title: '保存失败: ' + (res.message || '未知错误'), icon: 'none' });
+        Loading.error('保存失败');
       }
-
     } catch (err) {
-      console.error('请求失败', err);
-      const errMsg = (err && err.message) ? err.message : '网络异常';
-      wx.showToast({ title: errMsg, icon: 'none' });
+      console.error('onSubmit failed:', err);
+      Loading.error(err.message || '网络异常');
     } finally {
-      wx.hideLoading();
+      Loading.hide();
+      this._submitting = false;
     }
   }
 });

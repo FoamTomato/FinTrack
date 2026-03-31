@@ -1,6 +1,5 @@
 /**
  * 封装 wx.request 为 Promise
- * 直接调用微信云托管公网地址
  *
  * @param {string} path  接口路径，如 '/api/user/login'
  * @param {string} method 请求方法 GET/POST
@@ -9,7 +8,7 @@
  */
 const request = (path, method = 'GET', data = {}) => {
   return new Promise((resolve, reject) => {
-    const baseUrl = 'https://express-ncb7-224779-6-1403690123.sh.run.tcloudbase.com';
+    const baseUrl = 'http://117.72.182.195';
     const app = getApp();
     const openid = (app && app.globalData && app.globalData.openid) || '';
 

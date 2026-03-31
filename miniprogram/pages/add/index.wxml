@@ -2,8 +2,8 @@
   <form bindsubmit="onSubmit">
     <!-- 类型切换 (和首页筛选栏统一) -->
     <view class="type-tab-bar">
-      <view class="tab-item {{transactionType == 2 ? 'active expense' : ''}}" bindtap="changeTransactionType" data-type="2">支出</view>
-      <view class="tab-item {{transactionType == 1 ? 'active income' : ''}}" bindtap="changeTransactionType" data-type="1">收入</view>
+      <view class="tab-item {{transactionType == 2 ? 'active expense' : ''}}" bindtap="onChangeTransactionType" data-type="2">支出</view>
+      <view class="tab-item {{transactionType == 1 ? 'active income' : ''}}" bindtap="onChangeTransactionType" data-type="1">收入</view>
     </view>
 
     <!-- 输入主卡片 -->

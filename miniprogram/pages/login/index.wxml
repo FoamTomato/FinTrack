@@ -1,36 +1,7 @@
 <view class="container">
 
-  <!-- 欢迎页 -->
-  <view wx:if="{{phase === 'welcome'}}" class="welcome-page">
-    <view class="logo-area">
-      <view class="logo-icon">💰</view>
-      <text class="app-name">记账小助手</text>
-      <text class="app-desc">轻松记录每一笔收支</text>
-    </view>
-
-    <view class="features">
-      <view class="feature-item">
-        <text class="feature-icon">📊</text>
-        <text class="feature-text">收支统计一目了然</text>
-      </view>
-      <view class="feature-item">
-        <text class="feature-icon">👥</text>
-        <text class="feature-text">支持小组共同记账</text>
-      </view>
-      <view class="feature-item">
-        <text class="feature-icon">🗂️</text>
-        <text class="feature-text">自定义分类灵活管理</text>
-      </view>
-    </view>
-
-    <view class="bottom-area">
-      <button class="start-btn" bindtap="handleStart">使用微信账号登录</button>
-      <text class="privacy-tip">登录即代表同意《用户协议》和《隐私政策》</text>
-    </view>
-  </view>
-
-  <!-- 信息填写页 -->
-  <view wx:else class="setup-page">
+  <!-- 授权信息填写页 -->
+  <view class="setup-page">
     <view class="setup-header">
       <text class="setup-title">完善个人信息</text>
       <text class="setup-sub">选择头像和填写昵称，开始你的记账之旅</text>

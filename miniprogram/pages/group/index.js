@@ -1,33 +1,36 @@
-const app = getApp();
-const { request } = require('../../utils/request');
+const API = require('../../utils/api');
+const Loading = require('../../utils/loading');
 
 Page({
+  /**
+   * 页面数据
+   */
   data: {
-    activeTab: 0, // 0: 我的小组, 1: 加入/创建
+    activeTab: 0,
     myGroups: [],
     loading: true,
-    
-    // 输入绑定
     newGroupName: '',
     inviteCodeInput: '',
-    
-    // 弹窗控制
     showMembersModal: false,
     currentMembers: [],
     currentGroup: null
   },
 
+  /**
+   * 生命周期 —— 只做调度
+   */
   onLoad() {
     this.fetchMyGroups();
   },
 
   onPullDownRefresh() {
-    this.fetchMyGroups().finally(() => {
-      wx.stopPullDownRefresh();
-    });
+    this.fetchMyGroups().then(() => wx.stopPullDownRefresh());
   },
 
-  switchTab(e) {
+  /**
+   * 事件处理 —— Tab 切换
+   */
+  onSwitchTab(e) {
     const idx = parseInt(e.currentTarget.dataset.index);
     this.setData({ activeTab: idx });
   },
@@ -40,105 +43,121 @@ Page({
     this.setData({ inviteCodeInput: e.detail.value });
   },
 
-  stopPop() {
-    // 阻止冒泡
-    return;
-  },
+  // 阻止冒泡
+  stopPop() {},
 
-  // 获取小组列表
+  /**
+   * 数据获取 —— 小组列表
+   */
   async fetchMyGroups() {
+    this.setData({ loading: true });
     try {
-      this.setData({ loading: true });
-      const res = await request('/api/group/list', 'GET');
+      const res = await API.getGroups();
       if (res.code === 0) {
         this.setData({ myGroups: res.data || [] });
       }
     } catch (err) {
-      console.error(err);
-      wx.showToast({ title: '加载失败', icon: 'none' });
+      console.error('fetchMyGroups failed:', err);
+      Loading.error('加载失败');
     } finally {
       this.setData({ loading: false });
     }
   },
 
-  // 创建小组
+  /**
+   * 事件处理 —— 创建小组（防重复）
+   */
   async onCreateGroup() {
+    if (this._submitting) return;
+
     if (!this.data.newGroupName.trim()) {
-      return wx.showToast({ title: '请输入小组名称', icon: 'none' });
+      return Loading.toast('请输入小组名称');
     }
-    
+
+    this._submitting = true;
+    Loading.show('创建中...');
     try {
-      wx.showLoading({ title: '创建中' });
-      const res = await request('/api/group/create', 'POST', { name: this.data.newGroupName });
+      const res = await API.createGroup(this.data.newGroupName);
       if (res.code === 0) {
-        wx.showToast({ title: '创建成功' });
-        this.setData({ newGroupName: '', activeTab: 0 }); // 切回列表
+        Loading.success('创建成功');
+        this.setData({ newGroupName: '', activeTab: 0 });
         this.fetchMyGroups();
       } else {
-        wx.showToast({ title: res.msg || '创建失败', icon: 'none' });
+        Loading.error(res.msg || '创建失败');
       }
     } catch (err) {
-      wx.showToast({ title: '网络异常', icon: 'none' });
+      Loading.error('网络异常');
     } finally {
-      wx.hideLoading();
+      Loading.hide();
+      this._submitting = false;
     }
   },
 
-  // 加入小组
+  /**
+   * 事件处理 —— 加入小组（防重复）
+   */
   async onJoinGroup() {
+    if (this._submitting) return;
+
     if (!this.data.inviteCodeInput.trim()) {
-      return wx.showToast({ title: '请输入邀请码', icon: 'none' });
+      return Loading.toast('请输入邀请码');
     }
 
+    this._submitting = true;
+    Loading.show('加入中...');
     try {
-      wx.showLoading({ title: '加入中' });
-      const res = await request('/api/group/join', 'POST', { inviteCode: this.data.inviteCodeInput });
+      const res = await API.joinGroup(this.data.inviteCodeInput);
       if (res.code === 0) {
-        wx.showToast({ title: '加入成功' });
+        Loading.success('加入成功');
         this.setData({ inviteCodeInput: '', activeTab: 0 });
         this.fetchMyGroups();
       } else {
-        wx.showToast({ title: res.message || res.msg || '加入失败', icon: 'none' });
+        Loading.error(res.message || res.msg || '加入失败');
       }
     } catch (err) {
-      const msg = err.message || '网络异常';
-      wx.showToast({ title: msg, icon: 'none' });
+      Loading.error(err.message || '网络异常');
     } finally {
-      wx.hideLoading();
+      Loading.hide();
+      this._submitting = false;
     }
   },
 
-  // 查看成员详情
-  async viewMembers(e) {
+  /**
+   * 事件处理 —— 查看成员
+   */
+  async onViewMembers(e) {
     const group = e.currentTarget.dataset.group;
     this.setData({ currentGroup: group });
-    
+
+    Loading.show('加载成员...');
     try {
-      wx.showLoading({ title: '加载成员' });
-      const res = await request('/api/group/members', 'GET', { id: group.id });
+      const res = await API.getGroupMembers(group.id);
       if (res.code === 0) {
-        this.setData({ 
+        this.setData({
           currentMembers: res.data,
-          showMembersModal: true 
+          showMembersModal: true
         });
       }
     } catch (err) {
-      console.error(err);
+      console.error('onViewMembers failed:', err);
+      Loading.error('加载失败');
     } finally {
-      wx.hideLoading();
+      Loading.hide();
     }
   },
 
-  closeMembersModal() {
+  onCloseMembersModal() {
     this.setData({ showMembersModal: false });
   },
 
-  // 复制邀请码
-  copyCode(e) {
+  /**
+   * 事件处理 —— 复制邀请码
+   */
+  onCopyCode(e) {
     const code = e.currentTarget.dataset.code;
     wx.setClipboardData({
       data: code,
-      success: () => wx.showToast({ title: '邀请码已复制' })
+      success: () => Loading.success('邀请码已复制')
     });
   }
 });
