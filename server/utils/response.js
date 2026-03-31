@@ -1,20 +1,10 @@
 // 统一响应封装
-const success = (res, data = {}) => {
+const success = (res, data = null, message = 'ok') => {
   res.json({
     code: 0,
-    message: 'ok',
-    data: data
-  });
-};
+    message,
+    data
+  })
+}
 
-const error = (res, code = 5000, message = 'Internal Server Error') => {
-  res.json({
-    code: code,
-    message: message
-  });
-};
-
-module.exports = {
-  success,
-  error
-};
+module.exports = { success }

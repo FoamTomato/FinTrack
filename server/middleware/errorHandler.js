@@ -1,15 +1,20 @@
-const { error } = require('../utils/response');
-
 const errorHandler = (err, req, res, next) => {
-  console.error('❌ Error Stack:', err.stack);
-  
-  // 区分不同类型的错误
+  // 记录错误日志
+  console.error(`[Error] ${req.method} ${req.url}:`, err)
+
+  // 业务校验错误
   if (err.type === 'VALIDATION_ERROR') {
-    return error(res, 4001, err.message);
+    return res.json({
+      code: 4001,
+      message: err.message || '参数错误'
+    })
   }
 
-  // 默认服务器错误 — 始终返回具体信息便于调试
-  error(res, 5001, err.message);
-};
+  // 服务器内部错误
+  res.json({
+    code: 5001,
+    message: err.message || '服务器内部错误'
+  })
+}
 
-module.exports = errorHandler;
+module.exports = errorHandler

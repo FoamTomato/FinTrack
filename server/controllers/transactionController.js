@@ -1,224 +1,236 @@
-const transactionService = require('../services/transactionService');
-const { success } = require('../utils/response');
+const transactionService = require('../services/transactionService')
+const groupService = require('../services/groupService')
+const { success } = require('../utils/response')
+
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/
 
 class TransactionController {
   /**
-   * 创建账单接口
-   * POST /api/transaction/create
+   * 校验日期范围参数
+   */
+  _validateDateRange(startDate, endDate) {
+    if (!startDate || !endDate) {
+      throw { type: 'VALIDATION_ERROR', message: '缺少必要参数 (startDate, endDate)' }
+    }
+    if (!DATE_REGEX.test(startDate) || !DATE_REGEX.test(endDate)) {
+      throw { type: 'VALIDATION_ERROR', message: '日期格式错误，应为 YYYY-MM-DD' }
+    }
+    if (startDate > endDate) {
+      throw { type: 'VALIDATION_ERROR', message: 'startDate 不能大于 endDate' }
+    }
+  }
+
+  /**
+   * 校验小组查询权限（scope=1 时必须是成员）
+   */
+  async _validateScope(scope, groupId, openid) {
+    if (scope === 1) {
+      if (!groupId) {
+        throw { type: 'VALIDATION_ERROR', message: '小组模式下 groupId 不能为空' }
+      }
+      await groupService.checkMembership(groupId, openid)
+    }
+  }
+
+  /**
+   * 创建账单
    */
   async create(req, res, next) {
     try {
-      const { type, amount, category, category_id, date, note, group_id, groupId } = req.body;
-      // 这里的 openid 应该从网关 Header 获取 x-wx-openid，
-      // 开发环境如果没有网关，可以通过 header 模拟或者 body 传入（仅限本地）
-      const openid = req.headers['x-wx-openid'] || req.body.openid || 'test_openid';
+      // 提取参数
+      const openid = req.headers['x-wx-openid']
+      const { type, amount, category, category_id, date, note, group_id, groupId } = req.body
+      const finalGroupId = group_id || groupId
 
-      if (!amount || !category || !date) {
-        throw { type: 'VALIDATION_ERROR', message: '缺少必要参数 (amount, category, date)' };
+      // 参数校验
+      if (!category || !date) {
+        throw { type: 'VALIDATION_ERROR', message: '缺少必要参数 (category, date)' }
+      }
+      if (amount === undefined || amount === null || isNaN(Number(amount))) {
+        throw { type: 'VALIDATION_ERROR', message: '金额格式错误' }
+      }
+      if (Number(amount) <= 0) {
+        throw { type: 'VALIDATION_ERROR', message: '金额必须大于 0' }
+      }
+      if (![1, 2].includes(Number(type))) {
+        throw { type: 'VALIDATION_ERROR', message: 'type 必须为 1(收入) 或 2(支出)' }
+      }
+      if (!DATE_REGEX.test(date)) {
+        throw { type: 'VALIDATION_ERROR', message: '日期格式错误，应为 YYYY-MM-DD' }
       }
 
+      // 校验小组成员资格
+      if (finalGroupId) {
+        await groupService.checkMembership(finalGroupId, openid)
+      }
+
+      // 校验分类归属
+      if (category_id) {
+        await transactionService.validateCategory(category_id, openid, Number(type))
+      }
+
+      // 调用 Service
       const result = await transactionService.create({
         openid,
-        type,
-        amount,
+        type: Number(type),
+        amount: Number(amount),
         category,
         category_id,
         date,
         note,
-        group_id: group_id || groupId // 兼容两种命名
-      });
+        group_id: finalGroupId
+      })
 
-      success(res, result);
+      // 返回响应
+      success(res, result, '创建成功')
     } catch (err) {
-      next(err);
+      next(err)
     }
   }
 
   /**
    * 获取列表
-   * GET /api/transaction/list
    */
   async list(req, res, next) {
     try {
-        const openid = req.headers['x-wx-openid'] || req.query.openid || 'test_openid';
-        const { startDate, endDate, category } = req.query; 
-        const type = req.query.type ? parseInt(req.query.type) : 0;
-        const list = await transactionService.getList(openid, { startDate, endDate, type, category });
-        success(res, { list });
+      // 提取参数
+      const openid = req.headers['x-wx-openid']
+      const { startDate, endDate, category } = req.query
+      const type = req.query.type ? parseInt(req.query.type) : 0
+      const page = req.query.page ? parseInt(req.query.page) : 1
+      const pageSize = req.query.pageSize ? parseInt(req.query.pageSize) : 50
+
+      // 调用 Service
+      const list = await transactionService.getList(openid, { startDate, endDate, type, category, page, pageSize })
+
+      // 返回响应
+      success(res, { list })
     } catch (err) {
-        next(err);
+      next(err)
     }
   }
 
   /**
    * 获取统计数据
-   * GET /api/transaction/stats
    */
   async stats(req, res, next) {
     try {
-      const openid = req.headers['x-wx-openid'] || req.query.openid || 'test_openid';
-      const { startDate, endDate } = req.query;
+      // 提取参数
+      const openid = req.headers['x-wx-openid']
+      const { startDate, endDate } = req.query
 
-      if (!startDate || !endDate) {
-        throw { type: 'VALIDATION_ERROR', message: '缺少必要参数 (startDate, endDate)' };
-      }
+      // 参数校验
+      this._validateDateRange(startDate, endDate)
 
-      const stats = await transactionService.getStats(openid, startDate, endDate);
-      success(res, stats);
+      // 调用 Service
+      const stats = await transactionService.getStats(openid, startDate, endDate)
+
+      // 返回响应
+      success(res, stats)
     } catch (err) {
-      next(err);
+      next(err)
     }
   }
 
   /**
-   * 首页聚合接口
-   * GET /api/transaction/dashboard
+   * 首页仪表盘聚合接口
    */
   async dashboard(req, res, next) {
     try {
-      const openid = req.headers['x-wx-openid'] || req.query.openid || 'test_openid';
-      const { startDate, endDate } = req.query;
-      const type = req.query.type ? parseInt(req.query.type) : 0;
-      const scope = req.query.scope ? parseInt(req.query.scope) : 0; // 0: 个人; 1: 小组
-      const groupId = req.query.groupId ? parseInt(req.query.groupId) : null;
+      // 提取参数
+      const openid = req.headers['x-wx-openid']
+      const { startDate, endDate } = req.query
+      const type = req.query.type ? parseInt(req.query.type) : 0
+      const scope = req.query.scope ? parseInt(req.query.scope) : 0
+      const groupId = req.query.groupId ? parseInt(req.query.groupId) : null
 
-      if (!startDate || !endDate) {
-        throw { type: 'VALIDATION_ERROR', message: '缺少必要参数 (startDate, endDate)' };
-      }
+      // 参数校验
+      this._validateDateRange(startDate, endDate)
+      await this._validateScope(scope, groupId, openid)
 
-      // ⚠️ 修改 Service 调用，传入 scope 和 groupId
-      const data = await transactionService.getDashboardData(openid, startDate, endDate, type, scope, groupId);
-      success(res, data);
+      // 调用 Service
+      const data = await transactionService.getDashboardData(openid, startDate, endDate, type, scope, groupId)
+
+      // 返回响应
+      success(res, data)
     } catch (err) {
-      next(err);
+      next(err)
     }
   }
 
   /**
    * 获取近30天趋势数据
-   * GET /api/transaction/trend
    */
   async trend(req, res, next) {
     try {
-      const openid = req.headers['x-wx-openid'] || req.query.openid || 'test_openid';
-      // 明确处理 type=0 的情况
-      let type = 2;
-      if (req.query.type !== undefined && req.query.type !== '') {
-        type = parseInt(req.query.type);
-      }
-      
-      const scope = req.query.scope ? parseInt(req.query.scope) : 0; // 0: 个人; 1: 小组
-      const groupId = req.query.groupId ? parseInt(req.query.groupId) : null;
+      // 提取参数
+      const openid = req.headers['x-wx-openid']
+      const type = (req.query.type !== undefined && req.query.type !== '') ? parseInt(req.query.type) : 2
+      const scope = req.query.scope ? parseInt(req.query.scope) : 0
+      const groupId = req.query.groupId ? parseInt(req.query.groupId) : null
 
-      console.log(`[Trend] Request: openid=${openid}, type=${type}, scope=${scope}, groupId=${groupId}`);
+      // 校验小组权限
+      await this._validateScope(scope, groupId, openid)
 
-      const now = new Date();
-      const formatDate = (d) => d.toISOString().split('T')[0];
+      // 调用 Service
+      const data = await transactionService.getTrendData(openid, { type, scope, groupId })
 
-      // 1. 本期：最近30天
-      const currentEnd = formatDate(now);
-      const currentStartObj = new Date();
-      currentStartObj.setDate(now.getDate() - 29);
-      const currentStart = formatDate(currentStartObj);
-
-      // 2. 上期：再往前推30天
-      const lastEndObj = new Date();
-      lastEndObj.setDate(currentStartObj.getDate() - 1);
-      const lastEnd = formatDate(lastEndObj);
-      const lastStartObj = new Date();
-      lastStartObj.setDate(lastEndObj.getDate() - 29);
-      const lastStart = formatDate(lastStartObj);
-      
-      // ⚠️ 修改 Service 调用，传入 scope 和 groupId
-      const promises = [
-        transactionService.getStats(openid, currentStart, currentEnd, scope, groupId), 
-        transactionService.getStats(openid, lastStart, lastEnd, scope, groupId),       
-        // 暂时假设 dailyAvgCurve 也受 scope 影响
-        transactionService.getHistoryDailyAverageCurve(openid, type, scope, groupId)         
-      ];
-
-      const [currentStatsRaw, lastStatsRaw, dailyAvgCurve] = await Promise.all(promises);
-      
-      // 根据 type 提取对应金额 (1-收入, 2-支出, 0-全部聚合)
-      const extractAmount = (rows) => (rows || []).map(r => {
-          let amt = 0;
-          const typeNum = parseInt(type);
-          if (typeNum === 1) amt = parseFloat(r.income || 0);
-          else if (typeNum === 2) amt = parseFloat(r.expense || 0);
-          else amt = parseFloat(r.income || 0) + parseFloat(r.expense || 0); 
-          return {
-              date: r.date,
-              total_amount: amt
-          };
-      });
-
-      const currentStats = extractAmount(currentStatsRaw);
-      const lastStats = extractAmount(lastStatsRaw);
-
-      // 计算上个30天的日均值
-      const lastTotal = lastStats.reduce((sum, s) => sum + parseFloat(s.total_amount || 0), 0);
-      const lastAverage = lastTotal / 30;
-
-      success(res, {
-        current: currentStats,
-        last: lastStats,
-        dailyAverage: dailyAvgCurve,
-        lastAverage: lastAverage,
-        dateRange: {
-            current: { start: currentStart, end: currentEnd },
-            last: { start: lastStart, end: lastEnd }
-        }
-      });
-
+      // 返回响应
+      success(res, data)
     } catch (err) {
-      next(err);
+      next(err)
     }
   }
 
   /**
    * 统计分析接口
-   * GET /api/transaction/analysis
    */
   async analysis(req, res, next) {
     try {
-      const openid = req.headers['x-wx-openid'] || req.query.openid || 'test_openid';
-      const { startDate, endDate } = req.query;
-      const type = req.query.type ? parseInt(req.query.type) : 2; // 默认支出
-      const scope = req.query.scope ? parseInt(req.query.scope) : 0;
-      const groupId = req.query.groupId ? parseInt(req.query.groupId) : null;
+      // 提取参数
+      const openid = req.headers['x-wx-openid']
+      const { startDate, endDate } = req.query
+      const type = req.query.type ? parseInt(req.query.type) : 2
+      const scope = req.query.scope ? parseInt(req.query.scope) : 0
+      const groupId = req.query.groupId ? parseInt(req.query.groupId) : null
 
-      if (!startDate || !endDate) {
-        throw { type: 'VALIDATION_ERROR', message: '缺少必要参数 (startDate, endDate)' };
-      }
+      // 参数校验
+      this._validateDateRange(startDate, endDate)
+      await this._validateScope(scope, groupId, openid)
 
-      const data = await transactionService.getAnalysis(openid, { startDate, endDate, type, scope, groupId });
-      success(res, data);
+      // 调用 Service
+      const data = await transactionService.getAnalysis(openid, { startDate, endDate, type, scope, groupId })
+
+      // 返回响应
+      success(res, data)
     } catch (err) {
-      next(err);
+      next(err)
     }
   }
 
+  /**
+   * 删除账单
+   */
   async delete(req, res, next) {
     try {
-      const openid = req.headers['x-wx-openid'] || req.query.openid || 'test_openid';
-      const { id } = req.body;
-      console.log(`[Delete] Attempting to delete transaction. id: ${id}, openid: ${openid}`);
-      
-      if (!id) throw new Error('缺少账单ID');
-      
-      const result = await transactionService.delete(id, openid);
-      console.log(`[Delete] Service result: ${result}`);
+      // 提取参数
+      const openid = req.headers['x-wx-openid']
+      const { id } = req.body
 
-      if (result) {
-        res.json({ code: 0, message: '删除成功' });
-      } else {
-        res.json({ code: 1, message: '删除失败或无权限' });
+      // 参数校验
+      if (!id) {
+        throw { type: 'VALIDATION_ERROR', message: '账单 ID 不能为空' }
       }
+
+      // 调用 Service（含权限校验）
+      await transactionService.delete(id, openid)
+
+      // 返回响应
+      success(res, null, '删除成功')
     } catch (err) {
-      console.error(`[Delete] Error:`, err);
-      next(err);
+      next(err)
     }
   }
 }
 
-module.exports = new TransactionController();
+module.exports = new TransactionController()
