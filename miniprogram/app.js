@@ -5,8 +5,13 @@ const API = require('./utils/api');
 function validAvatar(url) {
   if (!url) return '';
   if (url.includes('mmbiz.qpic.cn/mmbiz/icTdbqWNOwBHc')) return '';
-  if (url.startsWith('http://tmp/')) return '';
   return url;
+}
+
+/** 判断是否为临时文件路径（需要上传） */
+function isTempFile(url) {
+  if (!url) return false;
+  return url.startsWith('http://tmp/') || url.startsWith('wxfile://');
 }
 
 App({
@@ -114,11 +119,18 @@ App({
    */
   async updateUserInfo(nickname, avatarUrl) {
     try {
-      const safeAvatar = validAvatar(avatarUrl);
-      const res = await API.userUpdate(nickname, safeAvatar);
+      let finalAvatar = validAvatar(avatarUrl);
+
+      // 临时文件需要先上传到服务器
+      if (isTempFile(avatarUrl)) {
+        const uploadRes = await API.uploadAvatar(avatarUrl);
+        finalAvatar = uploadRes.data.url;
+      }
+
+      const res = await API.userUpdate(nickname, finalAvatar);
       if (res.code === 0) {
-        this.globalData.userInfo = { nickname, avatarUrl: safeAvatar };
-        const userInfo = { openid: this.globalData.openid, nickname, avatarUrl: safeAvatar };
+        this.globalData.userInfo = { nickname, avatarUrl: finalAvatar };
+        const userInfo = { openid: this.globalData.openid, nickname, avatarUrl: finalAvatar };
         wx.setStorage({ key: 'userInfo', data: userInfo });
         return true;
       }

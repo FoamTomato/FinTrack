@@ -1,7 +1,7 @@
 <view class="container">
   
   <view class="user-card fui-card" bindtap="onShowBind">
-    <image class="user-avatar" src="{{userInfo.avatarUrl || '/images/icons/avatar.png'}}" mode="aspectFill" binderror="onAvatarError"></image>
+    <image class="user-avatar" src="{{userInfo.localAvatarUrl || userInfo.avatarUrl || '/images/icons/avatar.png'}}" mode="aspectFill" binderror="onAvatarError"></image>
     <view class="user-info">
       <view class="name-row">
         <text class="user-name">{{userInfo.nickname || '未设置昵称'}}</text>
@@ -60,7 +60,7 @@
       <view class="modal-title">完善个人信息</view>
       <view class="modal-body-form">
         <view class="avatar-selection-row">
-          <button class="avatar-wrapper" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+          <button class="avatar-wrapper" bindtap="onChooseAvatar">
             <image class="avatar-preview" src="{{tempAvatarUrl || userInfo.avatarUrl || '/images/icons/avatar.png'}}"></image>
             <view class="avatar-edit-icon">📸</view>
           </button>

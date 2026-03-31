@@ -2,12 +2,7 @@ const app = getApp();
 const API = require('../../utils/api');
 const Loading = require('../../utils/loading');
 
-// 静态分类图标映射
-const CATEGORY_ICON_MAP = {
-  '餐饮': '🍔', '购物': '🛍️', '交通': '🚗', '娱乐': '🎮',
-  '医疗': '🏥', '教育': '📚', '居住': '🏠', '人情': '🧧',
-  '转账': '💸', '工资': '💰', '理财': '📈', '其他': '📦'
-};
+const { resolveIconUrl } = require('../../utils/request');
 
 Page({
   /**
@@ -175,7 +170,7 @@ Page({
         ...item,
         date,
         formattedTime,
-        icon: item.icon || CATEGORY_ICON_MAP[item.category] || CATEGORY_ICON_MAP['其他'],
+        iconUrl: resolveIconUrl(item.icon),
         amount: parseFloat(item.amount).toFixed(2)
       };
     });

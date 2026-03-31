@@ -100,6 +100,9 @@ class TransactionService {
       queryParams.push(type)
     }
 
+    // 分页参数（直接嵌入，因为 mysql2 execute 对 LIMIT/OFFSET 参数化支持有问题）
+    const offset = (page - 1) * pageSize
+
     // 执行查询
     const sql = `SELECT t.id, t.type, t.amount, t.openid,
         COALESCE(c.name, t.category) as category,
@@ -112,11 +115,7 @@ class TransactionService {
       LEFT JOIN users u ON t.openid = u.openid
       WHERE ${conditions.join(' AND ')}
       ORDER BY t.date DESC, t.created_at DESC
-      LIMIT ? OFFSET ?`
-
-    // 分页参数
-    const offset = (page - 1) * pageSize
-    queryParams.push(pageSize, offset)
+      LIMIT ${parseInt(pageSize)} OFFSET ${parseInt(offset)}`
 
     const [rows] = await db.execute(sql, queryParams)
     return rows

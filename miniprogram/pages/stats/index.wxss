@@ -504,6 +504,11 @@ page {
   flex-shrink: 0;
 }
 
+.cat-icon-img {
+  width: 50rpx;
+  height: 50rpx;
+}
+
 .cat-body {
   flex: 1;
 }

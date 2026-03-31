@@ -142,7 +142,7 @@ class TransactionController {
       const { startDate, endDate } = req.query
       const type = req.query.type ? parseInt(req.query.type) : 0
       const scope = req.query.scope ? parseInt(req.query.scope) : 0
-      const groupId = req.query.groupId ? parseInt(req.query.groupId) : null
+      const groupId = req.query.groupId && req.query.groupId !== 'null' ? parseInt(req.query.groupId) : null
 
       // 参数校验
       this._validateDateRange(startDate, endDate)
@@ -167,7 +167,7 @@ class TransactionController {
       const openid = req.headers['x-wx-openid']
       const type = (req.query.type !== undefined && req.query.type !== '') ? parseInt(req.query.type) : 2
       const scope = req.query.scope ? parseInt(req.query.scope) : 0
-      const groupId = req.query.groupId ? parseInt(req.query.groupId) : null
+      const groupId = req.query.groupId && req.query.groupId !== 'null' ? parseInt(req.query.groupId) : null
 
       // 校验小组权限
       await this._validateScope(scope, groupId, openid)
@@ -192,7 +192,7 @@ class TransactionController {
       const { startDate, endDate } = req.query
       const type = req.query.type ? parseInt(req.query.type) : 2
       const scope = req.query.scope ? parseInt(req.query.scope) : 0
-      const groupId = req.query.groupId ? parseInt(req.query.groupId) : null
+      const groupId = req.query.groupId && req.query.groupId !== 'null' ? parseInt(req.query.groupId) : null
 
       // 参数校验
       this._validateDateRange(startDate, endDate)

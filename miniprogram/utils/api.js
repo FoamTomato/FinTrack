@@ -5,7 +5,7 @@
  * 不允许在页面 JS 中直接使用 request()。
  */
 
-const { request } = require('./request');
+const { request, uploadFile } = require('./request');
 
 class API {
   // ==================== 用户模块 ====================
@@ -23,6 +23,21 @@ class API {
   /** 获取用户信息 */
   static async userProfile() {
     return request('/api/user/profile', 'GET');
+  }
+
+  /** 上传头像（临时文件路径 → 永久 URL） */
+  static async uploadAvatar(filePath) {
+    return uploadFile('/api/upload/avatar', filePath);
+  }
+
+  /** 上传分类图标（临时文件路径 → 永久 URL） */
+  static async uploadIcon(filePath) {
+    return uploadFile('/api/upload/icon', filePath);
+  }
+
+  /** 获取用户自定义图标库 */
+  static async getUserIcons() {
+    return request('/api/upload/icons', 'GET');
   }
 
   // ==================== 交易模块 ====================

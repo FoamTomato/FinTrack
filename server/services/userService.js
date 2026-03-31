@@ -1,5 +1,14 @@
 const db = require('../config/db')
 
+const BASE_URL = process.env.BASE_URL || 'http://117.72.182.195'
+
+/** 将相对路径的头像 URL 补全为完整 URL */
+function fullAvatarUrl(url) {
+  if (!url) return url
+  if (url.startsWith('/')) return BASE_URL + url
+  return url
+}
+
 class UserService {
   /**
    * 获取用户信息（不存在则自动创建）
@@ -20,7 +29,7 @@ class UserService {
     return {
       openid: rows[0].openid,
       nickname: rows[0].nickname,
-      avatarUrl: rows[0].avatar_url,
+      avatarUrl: fullAvatarUrl(rows[0].avatar_url),
       isNew: !rows[0].nickname
     }
   }

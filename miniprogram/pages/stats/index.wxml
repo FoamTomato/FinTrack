@@ -88,7 +88,10 @@
           <view class="category-row {{item.expanded ? 'expanded' : ''}}" 
                 wx:for="{{list}}" wx:key="name">
             <view class="row-main" bindtap="onToggleSub" data-index="{{index}}">
-              <view class="cat-icon">{{item.icon || '🏷️'}}</view>
+              <view class="cat-icon">
+                <image wx:if="{{item.iconUrl}}" class="cat-icon-img" src="{{item.iconUrl}}" mode="aspectFit"></image>
+                <text wx:else>{{item.icon || '🏷️'}}</text>
+              </view>
               <view class="cat-body">
                 <view class="body-top">
                   <text class="cat-name">{{item.name}}</text>

@@ -104,7 +104,7 @@ page {
 .item-icon {
   width: 88rpx;
   height: 88rpx;
-  background: #f0fdf4; /* Very light green bg */
+  background: #f0fdf4;
   border-radius: 20rpx;
   display: flex;
   align-items: center;
@@ -112,6 +112,11 @@ page {
   font-size: 40rpx;
   margin-right: 24rpx;
   color: #333;
+}
+
+.icon-img {
+  width: 52rpx;
+  height: 52rpx;
 }
 
 .item-name {
@@ -285,4 +290,121 @@ page {
 
 .btn.confirm:active {
   background: #06ad56;
+}
+
+/* ======== 图标选择器 ======== */
+
+.picker-tabs {
+  display: flex;
+  margin-bottom: 20rpx;
+  background: #f5f6f7;
+  border-radius: 12rpx;
+  padding: 4rpx;
+}
+
+.picker-tab {
+  flex: 1;
+  text-align: center;
+  font-size: 24rpx;
+  color: #999;
+  padding: 12rpx 0;
+  border-radius: 10rpx;
+  transition: all 0.2s;
+}
+
+.picker-tab.active {
+  background: #fff;
+  color: #333;
+  font-weight: 600;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
+}
+
+.icon-empty-hint {
+  width: 100%;
+  text-align: center;
+  padding: 30rpx 0 10rpx;
+  font-size: 24rpx;
+  color: #bbb;
+}
+
+.selected-icon-row {
+  display: flex;
+  align-items: center;
+}
+
+.selected-icon-box {
+  width: 80rpx;
+  height: 80rpx;
+  background: #f0fdf4;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20rpx;
+}
+
+.selected-icon-img {
+  width: 48rpx;
+  height: 48rpx;
+}
+
+.selected-icon-placeholder {
+  font-size: 36rpx;
+  color: #ccc;
+}
+
+.selected-icon-hint {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.icon-picker {
+  margin-top: 16rpx;
+}
+
+.icon-grid-scroll {
+  max-height: 360rpx;
+}
+
+.icon-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.icon-grid-item {
+  width: 80rpx;
+  height: 80rpx;
+  background: #f7f8fa;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3rpx solid transparent;
+  transition: all 0.15s ease;
+}
+
+.icon-grid-item.active {
+  border-color: #07c160;
+  background: #f0fdf4;
+}
+
+.icon-grid-item:active {
+  transform: scale(0.92);
+}
+
+.icon-grid-img {
+  width: 44rpx;
+  height: 44rpx;
+}
+
+.upload-item {
+  background: #fff;
+  border: 3rpx dashed #ccc;
+}
+
+.upload-plus {
+  font-size: 40rpx;
+  color: #999;
+  font-weight: 300;
 }

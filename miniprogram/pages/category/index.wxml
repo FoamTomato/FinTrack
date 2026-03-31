@@ -10,27 +10,26 @@
   <view class="category-list">
     <view class="category-item" wx:for="{{categories}}" wx:key="id" bindtap="onGoToDetail" data-item="{{item}}" hover-class="item-hover">
       <view class="item-left">
-        <view class="item-icon">{{item.icon}}</view>
+        <view class="item-icon">
+          <image wx:if="{{item.iconUrl}}" class="icon-img" src="{{item.iconUrl}}" mode="aspectFit"></image>
+          <text wx:else>{{item.icon}}</text>
+        </view>
         <text class="item-name">{{item.name}}</text>
       </view>
       <view class="item-right">
-        <!-- 系统默认分类 -->
         <block wx:if="{{item.is_default == 1}}">
           <view class="system-tag">系统</view>
         </block>
-        <!-- 自定义分类 -->
         <block wx:else>
           <text class="edit-link" catchtap="onStartEdit" data-item="{{item}}">编辑</text>
           <view class="delete-btn" catchtap="onDeleteCategory" data-id="{{item.id}}">删除</view>
         </block>
       </view>
     </view>
-    
-    <!-- 添加按钮 placeholder (防止遮挡) -->
     <view style="height: 120rpx;"></view>
   </view>
 
-  <!-- 添加按钮 (Fixed) -->
+  <!-- 添加按钮 -->
   <view class="add-btn-wrapper" bindtap="onShowAddModal">
     <view class="add-icon">+</view>
     <text>添加分类</text>
@@ -41,15 +40,63 @@
     <view class="modal-content">
       <view class="modal-title">{{editingId ? '编辑分类' : '新建分类'}}</view>
       <view class="input-form">
+        <!-- 名称 -->
         <view class="input-row">
           <text class="input-label">名称</text>
           <input class="modal-input" placeholder="输入分类名称 (如: 奶茶)" bindinput="onInputName" value="{{newCategoryName}}"/>
         </view>
+
+        <!-- 已选图标预览 -->
         <view class="input-row">
           <text class="input-label">图标</text>
-          <input class="modal-input" placeholder="输入图标Emoji (如: 🥤)" bindinput="onInputIcon" value="{{newCategoryIcon}}"/>
+          <view class="selected-icon-row">
+            <view class="selected-icon-box">
+              <image wx:if="{{newCategoryIconUrl}}" class="selected-icon-img" src="{{newCategoryIconUrl}}" mode="aspectFit"></image>
+              <text wx:else class="selected-icon-placeholder">?</text>
+            </view>
+            <text class="selected-icon-hint">{{newCategoryIconUrl ? '点击下方更换' : '请选择图标'}}</text>
+          </view>
+        </view>
+
+        <!-- 图标选择区：Tab + 网格 -->
+        <view class="icon-picker">
+          <view class="picker-tabs">
+            <view class="picker-tab {{iconTab === 'preset' ? 'active' : ''}}" bindtap="onSwitchIconTab" data-tab="preset">系统图标</view>
+            <view class="picker-tab {{iconTab === 'mine' ? 'active' : ''}}" bindtap="onSwitchIconTab" data-tab="mine">我的图标</view>
+          </view>
+
+          <scroll-view scroll-y class="icon-grid-scroll">
+            <!-- 系统图标 -->
+            <view class="icon-grid" wx:if="{{iconTab === 'preset'}}">
+              <view class="icon-grid-item {{newCategoryIcon === item.path ? 'active' : ''}}"
+                    wx:for="{{presetIcons}}" wx:key="file"
+                    bindtap="onSelectPresetIcon"
+                    data-path="{{item.path}}" data-url="{{item.url}}">
+                <image class="icon-grid-img" src="{{item.url}}" mode="aspectFit"></image>
+              </view>
+            </view>
+
+            <!-- 我的图标 -->
+            <view class="icon-grid" wx:if="{{iconTab === 'mine'}}">
+              <view class="icon-grid-item {{newCategoryIcon === item.url ? 'active' : ''}}"
+                    wx:for="{{userIcons}}" wx:key="id"
+                    bindtap="onSelectUserIcon"
+                    data-url="{{item.url}}">
+                <image class="icon-grid-img" src="{{item.url}}" mode="aspectFit"></image>
+              </view>
+              <!-- 上传按钮 -->
+              <view class="icon-grid-item upload-item" bindtap="onUploadIcon">
+                <text class="upload-plus">+</text>
+              </view>
+              <!-- 空状态 -->
+              <view class="icon-empty-hint" wx:if="{{userIcons.length === 0}}">
+                <text>点击 + 上传自定义图标</text>
+              </view>
+            </view>
+          </scroll-view>
         </view>
       </view>
+
       <view class="modal-footer">
         <button class="btn cancel" bindtap="onHideModal">取消</button>
         <button class="btn confirm" bindtap="handleConfirm">{{editingId ? '保存' : '确定'}}</button>

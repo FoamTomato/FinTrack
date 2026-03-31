@@ -1,6 +1,8 @@
 const API = require('../../utils/api');
 const Loading = require('../../utils/loading');
 
+const { resolveIconUrl } = require('../../utils/request');
+
 Page({
   /**
    * 页面数据
@@ -302,7 +304,7 @@ Page({
         const { total, list } = res.data;
 
         // 格式化列表数据
-        const processedList = list.map(item => ({ ...item, expanded: false }));
+        const processedList = list.map(item => ({ ...item, expanded: false, iconUrl: resolveIconUrl(item.icon) }));
         this.setData({ total, list: processedList });
 
         // 构建柱状图

@@ -37,6 +37,51 @@ const request = (path, method = 'GET', data = {}) => {
   });
 };
 
+/**
+ * 封装 wx.uploadFile 为 Promise
+ */
+const uploadFile = (path, filePath, name = 'file') => {
+  return new Promise((resolve, reject) => {
+    const baseUrl = 'http://117.72.182.195';
+    const app = getApp();
+    const openid = (app && app.globalData && app.globalData.openid) || '';
+
+    wx.uploadFile({
+      url: baseUrl + path,
+      filePath,
+      name,
+      header: { 'x-wx-openid': openid },
+      success: (res) => {
+        try {
+          const data = JSON.parse(res.data);
+          if (data.code === 0) {
+            resolve(data);
+          } else {
+            reject({ message: data.message || '上传失败' });
+          }
+        } catch (e) {
+          reject({ message: '解析响应失败' });
+        }
+      },
+      fail: (err) => {
+        reject({ message: '上传请求失败', ...err });
+      }
+    });
+  });
+};
+
+const BASE_URL = 'http://117.72.182.195';
+
+/** 将相对路径的图标 URL 补全为完整 URL */
+const resolveIconUrl = (icon) => {
+  if (!icon) return '';
+  if (icon.startsWith('/')) return BASE_URL + icon;
+  if (icon.startsWith('http')) return icon;
+  return '';
+};
+
 module.exports = {
-  request
+  request,
+  uploadFile,
+  resolveIconUrl
 };

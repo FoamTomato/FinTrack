@@ -1,13 +1,19 @@
 const app = getApp();
 const API = require('../../utils/api');
 const Loading = require('../../utils/loading');
+const { downloadAvatar } = require('../../utils/avatar');
 
 /** 过滤已失效的微信默认头像等无效 URL */
 function validAvatar(url) {
   if (!url) return '';
   if (url.includes('mmbiz.qpic.cn/mmbiz/icTdbqWNOwBHc')) return '';
-  if (url.startsWith('http://tmp/')) return '';
   return url;
+}
+
+/** 判断是否为本地临时文件（需要上传到服务器） */
+function isTempFile(url) {
+  if (!url) return false;
+  return url.startsWith('http://tmp/') || url.startsWith('wxfile://');
 }
 
 Page({
@@ -17,7 +23,8 @@ Page({
   data: {
     userInfo: {
       nickname: '',
-      avatarUrl: ''
+      avatarUrl: '',
+      localAvatarUrl: ''
     },
     showBindModal: false,
     tempNickname: '',
@@ -38,10 +45,13 @@ Page({
     try {
       const res = await API.userProfile();
       const safeAvatar = validAvatar(res.data.avatarUrl);
+      // HTTP URL 无法在 <image> 组件中直接展示，需下载到本地
+      const localPath = await downloadAvatar(safeAvatar);
       this.setData({
         userInfo: {
           nickname: res.data.nickname || '',
-          avatarUrl: safeAvatar
+          avatarUrl: safeAvatar,
+          localAvatarUrl: localPath
         }
       });
     } catch (err) {
@@ -69,7 +79,7 @@ Page({
     this.setData({
       showBindModal: true,
       tempNickname: this.data.userInfo.nickname,
-      tempAvatarUrl: ''
+      tempAvatarUrl: this.data.userInfo.localAvatarUrl || ''
     });
   },
 
@@ -77,8 +87,18 @@ Page({
     this.setData({ showBindModal: false, tempAvatarUrl: '' });
   },
 
-  onChooseAvatar(e) {
-    this.setData({ tempAvatarUrl: e.detail.avatarUrl });
+  /**
+   * 事件处理 —— 选择头像（从相册或相机）
+   */
+  onChooseAvatar() {
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        this.setData({ tempAvatarUrl: res.tempFiles[0].tempFilePath });
+      }
+    });
   },
 
   onNicknameInput(e) {
@@ -86,7 +106,7 @@ Page({
   },
 
   onAvatarError() {
-    this.setData({ 'userInfo.avatarUrl': '/images/icons/avatar.png' });
+    this.setData({ 'userInfo.localAvatarUrl': '/images/icons/avatar.png' });
   },
 
   /**
@@ -99,12 +119,20 @@ Page({
       return Loading.toast('请输入昵称');
     }
 
-    const finalAvatarUrl = validAvatar(this.data.tempAvatarUrl || this.data.userInfo.avatarUrl);
+    const rawAvatarUrl = this.data.tempAvatarUrl || this.data.userInfo.avatarUrl;
 
     this._submitting = true;
     Loading.show('保存中...');
     try {
       const nickname = this.data.tempNickname.trim();
+
+      // 本地临时文件先上传到服务器
+      let finalAvatarUrl = validAvatar(rawAvatarUrl);
+      if (isTempFile(rawAvatarUrl)) {
+        const uploadRes = await API.uploadAvatar(rawAvatarUrl);
+        finalAvatarUrl = uploadRes.data.url;
+      }
+
       await API.userUpdate(nickname, finalAvatarUrl);
 
       // 更新全局数据和缓存
@@ -119,6 +147,7 @@ Page({
       this.setData({ showBindModal: false });
       this.fetchUserProfile();
     } catch (err) {
+      console.error('onConfirmBind failed:', err);
       Loading.error('更新失败');
     } finally {
       Loading.hide();

@@ -119,7 +119,10 @@
                             style="width: calc(100% + 150rpx); display: flex;">
                   
                   <view class="fui-list-cell" style="flex: 1; padding-left: 20rpx;">
-                    <view class="cell-icon">{{item.icon}}</view>
+                    <view class="cell-icon">
+                      <image wx:if="{{item.iconUrl}}" class="cell-icon-img" src="{{item.iconUrl}}" mode="aspectFit"></image>
+                      <text wx:else>{{item.icon}}</text>
+                    </view>
                     <view class="cell-info">
                       <view class="cell-category">
                         {{item.category}}
@@ -155,7 +158,10 @@
       <scroll-view scroll-y class="modal-body">
         <view class="detail-list" wx:if="{{selectedDateTransactions.length}}">
           <view class="fui-list-cell" wx:for="{{selectedDateTransactions}}" wx:key="id">
-            <view class="cell-icon">{{item.icon}}</view>
+            <view class="cell-icon">
+                      <image wx:if="{{item.iconUrl}}" class="cell-icon-img" src="{{item.iconUrl}}" mode="aspectFit"></image>
+                      <text wx:else>{{item.icon}}</text>
+                    </view>
             <view class="cell-info">
               <view class="cell-category">
                 {{item.category}}

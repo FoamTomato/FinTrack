@@ -13,14 +13,18 @@ Page({
   },
 
   /**
-   * 事件处理 —— 选择微信头像
+   * 事件处理 —— 选择头像（从相册或相机）
    */
-  onChooseAvatar(e) {
-    const { avatarUrl } = e.detail;
-    if (avatarUrl) {
-      this.setData({ avatarUrl });
-      this._updateCanSubmit();
-    }
+  onChooseAvatar() {
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        this.setData({ avatarUrl: res.tempFiles[0].tempFilePath });
+        this._updateCanSubmit();
+      }
+    });
   },
 
   /**
