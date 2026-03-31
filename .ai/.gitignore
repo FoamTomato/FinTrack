@@ -1,0 +1,6 @@
+# 敏感信息 - 禁止提交到版本控制系统
+context/敏感信息.md
+*.key
+*.pem
+*.env
+.env.local
