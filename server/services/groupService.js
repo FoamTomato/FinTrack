@@ -20,7 +20,7 @@ class GroupService {
     const inviteCode = this.generateInviteCode();
     // 插入小组表
     const [res] = await db.execute(
-      `INSERT INTO groups (name, owner_openid, invite_code) VALUES (?, ?, ?)`,
+      `INSERT INTO \`groups\` (name, owner_openid, invite_code) VALUES (?, ?, ?)`,
       [name, openid, inviteCode]
     );
     const groupId = res.insertId;
@@ -39,7 +39,7 @@ class GroupService {
    */
   async join(inviteCode, openid) {
     // 1. 查找小组
-    const [rows] = await db.execute(`SELECT id, name FROM groups WHERE invite_code = ?`, [inviteCode]);
+    const [rows] = await db.execute(`SELECT id, name FROM \`groups\` WHERE invite_code = ?`, [inviteCode]);
     if (rows.length === 0) {
       throw new Error('无效的邀请码');
     }
@@ -72,7 +72,7 @@ class GroupService {
       SELECT g.id, g.name, g.invite_code, gm.role, gm.joined_at, 
       (SELECT COUNT(*) FROM group_members WHERE group_id = g.id) as member_count
       FROM group_members gm
-      JOIN groups g ON gm.group_id = g.id
+      JOIN \`groups\` g ON gm.group_id = g.id
       WHERE gm.openid = ?
       ORDER BY gm.joined_at DESC
     `;

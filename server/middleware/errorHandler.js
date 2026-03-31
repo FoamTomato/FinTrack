@@ -8,8 +8,8 @@ const errorHandler = (err, req, res, next) => {
     return error(res, 4001, err.message);
   }
 
-  // 默认服务器错误
-  error(res, 5001, process.env.NODE_ENV === 'production' ? '服务器内部错误' : err.message);
+  // 默认服务器错误 — 始终返回具体信息便于调试
+  error(res, 5001, err.message);
 };
 
 module.exports = errorHandler;

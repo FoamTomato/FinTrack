@@ -1,20 +1,26 @@
 const mysql = require('mysql2/promise');
 const dotenv = require('dotenv');
 
-dotenv.config();
+// 仅在非生产环境加载 .env 文件
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
 
-// 创建连接池
-// 使用腾讯云 CDB 数据库
-let dbHost = process.env.MYSQL_HOST || 'sh-cynosdbmysql-grp-cq9vhtoy.sql.tencentcdb.com';
-let dbPort = process.env.MYSQL_PORT || '21257';
+// 验证必需的环境变量
+const requiredEnvVars = ['MYSQL_HOST', 'MYSQL_PORT', 'MYSQL_USERNAME', 'MYSQL_PASSWORD', 'MYSQL_DATABASE'];
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+
+if (missingEnvVars.length > 0) {
+  throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
+}
 
 // 创建连接池
 const pool = mysql.createPool({
-  host: dbHost,
-  port: parseInt(dbPort),
-  user: process.env.MYSQL_USERNAME || 'root',
-  password: process.env.MYSQL_PASSWORD || 'vtb8MuRw',
-  database: process.env.MYSQL_DATABASE || 'account_app',
+  host: process.env.MYSQL_HOST,
+  port: parseInt(process.env.MYSQL_PORT),
+  user: process.env.MYSQL_USERNAME,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,

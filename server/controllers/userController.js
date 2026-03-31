@@ -1,10 +1,10 @@
 const userService = require('../services/userService');
 const { success } = require('../utils/response');
-const http = require('http');
+const https = require('https');
 
-/** 微信小程序 AppID 和 AppSecret */
-const WX_APPID = process.env.WX_APPID || 'wxde8a208736a4cc77';
-const WX_SECRET = process.env.WX_SECRET || ''; // 必须从环境变量读取
+/** 微信小程序 AppID 和 AppSecret - 必须从环境变量读取 */
+const WX_APPID = process.env.WX_APPID;
+const WX_SECRET = process.env.WX_SECRET;
 
 class UserController {
   /**
@@ -71,9 +71,9 @@ class UserController {
       // 关键修正：
       // 1. 使用 http 协议 (避免 self-signed certificate 错误)
       // 2. 显式传递 secret (避免 appsecret missing 错误)
-      const url = `http://api.weixin.qq.com/sns/jscode2session?appid=${WX_APPID}&secret=${WX_SECRET}&js_code=${code}&grant_type=authorization_code`;
+      const url = `https://api.weixin.qq.com/sns/jscode2session?appid=${WX_APPID}&secret=${WX_SECRET}&js_code=${code}&grant_type=authorization_code`;
 
-      http.get(url, (resp) => {
+      https.get(url, (resp) => {
         let data = '';
         resp.on('data', (chunk) => data += chunk);
         resp.on('end', () => {
