@@ -160,7 +160,6 @@ Page({
     Loading.show('保存中...');
 
     try {
-      // 调用 API 创建交易
       const res = await API.createTransaction({
         type: transactionType || 2,
         amount: parseFloat(amount) || 0,
@@ -170,17 +169,19 @@ Page({
         note: note || ''
       });
 
+      Loading.hide();
+
       if (res.code === 0) {
-        Loading.success('记账成功');
         this.setData({ amount: '', note: '' });
+        Loading.success('记账成功');
       } else {
-        Loading.error('保存失败');
+        Loading.error(res.message || '保存失败');
       }
     } catch (err) {
+      Loading.hide();
       console.error('onSubmit failed:', err);
       Loading.error(err.message || '网络异常');
     } finally {
-      Loading.hide();
       this._submitting = false;
     }
   }

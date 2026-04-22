@@ -5,6 +5,8 @@ const path = require('path')
 const fs = require('fs')
 const db = require('../config/db')
 
+const UPLOAD_URL_PREFIX = process.env.UPLOAD_URL_PREFIX || '/uploads'
+
 // ======== 头像上传 ========
 
 const avatarDir = path.join(__dirname, '..', 'uploads', 'avatar')
@@ -34,7 +36,7 @@ router.post('/avatar', avatarUpload.single('file'), (req, res) => {
   if (!req.file) return res.json({ code: 1, message: '未收到文件' })
   const protocol = req.headers['x-forwarded-proto'] || 'http'
   const host = req.headers['x-forwarded-host'] || req.headers.host
-  const url = `${protocol}://${host}/uploads/avatar/${req.file.filename}?t=${Date.now()}`
+  const url = `${protocol}://${host}${UPLOAD_URL_PREFIX}/avatar/${req.file.filename}?t=${Date.now()}`
   res.json({ code: 0, data: { url }, message: '上传成功' })
 })
 
@@ -68,7 +70,7 @@ router.post('/icon', iconUpload.single('file'), async (req, res) => {
   const openid = req.headers['x-wx-openid']
   const protocol = req.headers['x-forwarded-proto'] || 'http'
   const host = req.headers['x-forwarded-host'] || req.headers.host
-  const url = `${protocol}://${host}/uploads/icon/${req.file.filename}?t=${Date.now()}`
+  const url = `${protocol}://${host}${UPLOAD_URL_PREFIX}/icon/${req.file.filename}?t=${Date.now()}`
 
   // 自动存入用户图标库
   try {

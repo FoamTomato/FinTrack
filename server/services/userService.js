@@ -1,6 +1,6 @@
 const db = require('../config/db')
 
-const BASE_URL = process.env.BASE_URL || 'http://117.72.182.195'
+const BASE_URL = process.env.BASE_URL || 'https://xiaohang.site'
 
 /** 将相对路径的头像 URL 补全为完整 URL */
 function fullAvatarUrl(url) {

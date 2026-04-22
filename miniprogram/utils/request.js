@@ -1,3 +1,28 @@
+const BASE_URL = 'https://xiaohang.site';
+
+/**
+ * 判断当前运行的小程序版本：
+ *   release → 正式版   → 生产环境
+ *   trial   → 体验版   → 测试环境
+ *   develop → 开发版   → 测试环境
+ * 非 release 一律走测试，把 URL 中的 /api/ 替换为 /api-test/，/uploads/ 替换为 /uploads-test/
+ */
+function isTestEnv() {
+  try {
+    const env = wx.getAccountInfoSync().miniProgram.envVersion;
+    return env !== 'release';
+  } catch (e) {
+    return true;
+  }
+}
+
+function resolvePath(path) {
+  if (!isTestEnv()) return path;
+  return path
+    .replace(/^\/api\//, '/api-test/')
+    .replace(/^\/uploads\//, '/uploads-test/');
+}
+
 /**
  * 封装 wx.request 为 Promise
  *
@@ -8,12 +33,11 @@
  */
 const request = (path, method = 'GET', data = {}) => {
   return new Promise((resolve, reject) => {
-    const baseUrl = 'http://117.72.182.195';
     const app = getApp();
     const openid = (app && app.globalData && app.globalData.openid) || '';
 
     wx.request({
-      url: baseUrl + path,
+      url: BASE_URL + resolvePath(path),
       method,
       header: {
         'Content-Type': 'application/json',
@@ -42,12 +66,11 @@ const request = (path, method = 'GET', data = {}) => {
  */
 const uploadFile = (path, filePath, name = 'file') => {
   return new Promise((resolve, reject) => {
-    const baseUrl = 'http://117.72.182.195';
     const app = getApp();
     const openid = (app && app.globalData && app.globalData.openid) || '';
 
     wx.uploadFile({
-      url: baseUrl + path,
+      url: BASE_URL + resolvePath(path),
       filePath,
       name,
       header: { 'x-wx-openid': openid },
@@ -70,12 +93,10 @@ const uploadFile = (path, filePath, name = 'file') => {
   });
 };
 
-const BASE_URL = 'http://117.72.182.195';
-
-/** 将相对路径的图标 URL 补全为完整 URL */
+/** 将相对路径的图标 URL 补全为完整 URL（按环境切换 /uploads 前缀）*/
 const resolveIconUrl = (icon) => {
   if (!icon) return '';
-  if (icon.startsWith('/')) return BASE_URL + icon;
+  if (icon.startsWith('/')) return BASE_URL + resolvePath(icon);
   if (icon.startsWith('http')) return icon;
   return '';
 };
