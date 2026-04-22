@@ -21,16 +21,20 @@ class UserService {
     )
 
     if (rows.length === 0) {
-      // 自动创建基础记录
-      await db.execute('INSERT INTO users (openid) VALUES (?)', [openid])
-      return { openid, nickname: null, avatarUrl: null, isNew: true }
+      // 自动创建基础记录，默认昵称用 openid 后 6 位保证可区分
+      const defaultNickname = '微信用户' + openid.slice(-6)
+      await db.execute(
+        'INSERT INTO users (openid, nickname) VALUES (?, ?)',
+        [openid, defaultNickname]
+      )
+      return { openid, nickname: defaultNickname, avatarUrl: null, isNew: true }
     }
 
     return {
       openid: rows[0].openid,
       nickname: rows[0].nickname,
       avatarUrl: fullAvatarUrl(rows[0].avatar_url),
-      isNew: !rows[0].nickname
+      isNew: false
     }
   }
 

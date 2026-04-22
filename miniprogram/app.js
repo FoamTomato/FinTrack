@@ -52,42 +52,33 @@ App({
     try {
       // 先检查本地缓存
       const cachedUser = wx.getStorageSync('userInfo');
-      if (cachedUser && cachedUser.openid && cachedUser.nickname) {
+      if (cachedUser && cachedUser.openid) {
         this.globalData.openid = cachedUser.openid;
-        this.globalData.userInfo = { nickname: cachedUser.nickname, avatarUrl: validAvatar(cachedUser.avatarUrl) };
+        this.globalData.userInfo = {
+          nickname: cachedUser.nickname || '',
+          avatarUrl: validAvatar(cachedUser.avatarUrl)
+        };
         this.globalData.isAuthorized = true;
-        console.log('使用缓存用户信息:', cachedUser);
         this._notifyLoginCallbacks(true);
         return;
       }
 
       // 第一步：wx.login 获取 code
       const loginRes = await this.wxLogin();
-      console.log('wx.login 成功, code:', loginRes.code);
 
-      // 第二步：发送 code 到后端，换取 openid
+      // 第二步：发送 code 到后端，后端若是首次会用默认昵称自动建号
       const res = await API.userLogin(loginRes.code);
-      const { openid, nickname, avatarUrl, isNew } = res.data;
+      const { openid, nickname, avatarUrl } = res.data;
 
-      // 保存 openid 到全局
+      const safeAvatar = validAvatar(avatarUrl);
       this.globalData.openid = openid;
-
-      if (!isNew && nickname) {
-        // 用户已授权，存储到缓存
-        const safeAvatar = validAvatar(avatarUrl);
-        const userInfo = { openid, nickname, avatarUrl: safeAvatar };
-        wx.setStorage({ key: 'userInfo', data: userInfo });
-        this.globalData.userInfo = { nickname, avatarUrl: safeAvatar };
-        this.globalData.isAuthorized = true;
-      } else {
-        // 未授权，需要在授权页完成授权
-        this.globalData.isAuthorized = false;
-      }
+      this.globalData.userInfo = { nickname: nickname || '', avatarUrl: safeAvatar };
+      this.globalData.isAuthorized = true;
+      wx.setStorage({ key: 'userInfo', data: { openid, nickname, avatarUrl: safeAvatar } });
     } catch (err) {
       // 40163: code 已被使用，用新 code 重试一次
       const isCodeUsed = err && (err.message || '').includes('code been used');
       if (isCodeUsed && !retried) {
-        console.warn('code 已使用，正在用新 code 重试...');
         this._loginChecking = false;
         this.loginAndCheck(true);
         return;
@@ -99,11 +90,6 @@ App({
     }
 
     this._notifyLoginCallbacks(this.globalData.isAuthorized);
-
-    // 未授权时跳转到登录页
-    if (!this.globalData.isAuthorized) {
-      wx.reLaunch({ url: '/pages/login/index' });
-    }
   },
 
   /**

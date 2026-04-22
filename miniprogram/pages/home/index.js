@@ -37,11 +37,7 @@ Page({
    */
   onLoad() {
     app.onLoginReady((authorized) => {
-      if (!authorized) {
-        wx.reLaunch({ url: '/pages/login/index' });
-      } else {
-        this.fetchMyGroups();
-      }
+      if (authorized) this.fetchMyGroups();
     });
   },
 

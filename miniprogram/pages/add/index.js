@@ -1,4 +1,3 @@
-const app = getApp();
 const API = require('../../utils/api');
 const Loading = require('../../utils/loading');
 
@@ -25,12 +24,6 @@ Page({
     const today = new Date().toISOString().split('T')[0];
     this.setData({ date: today });
     this.loadCategories();
-  },
-
-  onShow() {
-    if (app.globalData.isAuthorized === false) {
-      wx.reLaunch({ url: '/pages/login/index' });
-    }
   },
 
   /**

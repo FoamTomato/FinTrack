@@ -1,7 +1,6 @@
 {
   "pages": [
     "pages/home/index",
-    "pages/login/index",
     "pages/add/index",
     "pages/settings/index",
     "pages/category/index",

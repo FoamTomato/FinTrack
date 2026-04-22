@@ -88,17 +88,12 @@ Page({
   },
 
   /**
-   * 事件处理 —— 选择头像（从相册或相机）
+   * 事件处理 —— 选择头像（open-type="chooseAvatar" 官方接口）
+   * 用户在弹出的菜单里可选微信头像或从相册
    */
-  onChooseAvatar() {
-    wx.chooseMedia({
-      count: 1,
-      mediaType: ['image'],
-      sourceType: ['album', 'camera'],
-      success: (res) => {
-        this.setData({ tempAvatarUrl: res.tempFiles[0].tempFilePath });
-      }
-    });
+  onChooseAvatar(e) {
+    const avatarUrl = e.detail && e.detail.avatarUrl;
+    if (avatarUrl) this.setData({ tempAvatarUrl: avatarUrl });
   },
 
   onNicknameInput(e) {

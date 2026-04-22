@@ -60,17 +60,16 @@
       <view class="modal-title">完善个人信息</view>
       <view class="modal-body-form">
         <view class="avatar-selection-row">
-          <button class="avatar-wrapper" bindtap="onChooseAvatar">
+          <button class="avatar-wrapper" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
             <image class="avatar-preview" src="{{tempAvatarUrl || userInfo.avatarUrl || '/images/icons/avatar.png'}}"></image>
             <view class="avatar-edit-icon">📸</view>
           </button>
-          <text class="avatar-hint">点击更换头像</text>
+          <text class="avatar-hint">点击使用微信头像</text>
         </view>
         <view class="input-group-row">
           <text class="label">昵称</text>
-          <input class="modal-input-field" placeholder="请输入您的昵称" bindinput="onNicknameInput" value="{{tempNickname}}" />
+          <input class="modal-input-field" type="nickname" placeholder="点击使用微信昵称" bindinput="onNicknameInput" value="{{tempNickname}}" />
         </view>
-        <view class="modal-tips">提示：绑定后可享受更好的服务体验</view>
       </view>
       <view class="modal-footer">
         <button class="btn-action cancel" bindtap="onHideBind" wx:if="{{!userInfo.isNew}}">取消</button>
