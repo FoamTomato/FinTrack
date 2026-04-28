@@ -1,3 +1,6 @@
+const Logger = require('./logger');
+const log = Logger.module('request');
+
 const BASE_URL = 'https://xiaohang.site';
 
 /**
@@ -54,7 +57,7 @@ const request = (path, method = 'GET', data = {}) => {
         }
       },
       fail: (err) => {
-        console.error('请求失败:', path, err);
+        log.error('请求失败:', path, err);
         reject({ message: '网络请求失败', ...err });
       }
     });

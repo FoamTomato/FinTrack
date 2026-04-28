@@ -1,5 +1,7 @@
 const API = require('../../utils/api');
 const Loading = require('../../utils/loading');
+const Logger = require('../../utils/logger');
+const log = Logger.module('group');
 
 Page({
   /**
@@ -57,7 +59,7 @@ Page({
         this.setData({ myGroups: res.data || [] });
       }
     } catch (err) {
-      console.error('fetchMyGroups failed:', err);
+      log.error('fetchMyGroups failed:', err);
       Loading.error('加载失败');
     } finally {
       this.setData({ loading: false });
@@ -139,7 +141,7 @@ Page({
         });
       }
     } catch (err) {
-      console.error('onViewMembers failed:', err);
+      log.error('onViewMembers failed:', err);
       Loading.error('加载失败');
     } finally {
       Loading.hide();

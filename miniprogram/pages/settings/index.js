@@ -2,6 +2,8 @@ const app = getApp();
 const API = require('../../utils/api');
 const Loading = require('../../utils/loading');
 const { downloadAvatar } = require('../../utils/avatar');
+const Logger = require('../../utils/logger');
+const log = Logger.module('settings');
 
 /** 过滤已失效的微信默认头像等无效 URL */
 function validAvatar(url) {
@@ -55,7 +57,7 @@ Page({
         }
       });
     } catch (err) {
-      console.error('fetchUserProfile failed:', err);
+      log.error('fetchUserProfile failed:', err);
     }
   },
 
@@ -142,7 +144,7 @@ Page({
       this.setData({ showBindModal: false });
       this.fetchUserProfile();
     } catch (err) {
-      console.error('onConfirmBind failed:', err);
+      log.error('onConfirmBind failed:', err);
       Loading.error('更新失败');
     } finally {
       Loading.hide();

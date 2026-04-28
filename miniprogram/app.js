@@ -1,5 +1,7 @@
 // app.js
 const API = require('./utils/api');
+const Logger = require('./utils/logger');
+const log = Logger.module('app');
 
 /** 过滤已失效的微信默认头像等无效 URL */
 function validAvatar(url) {
@@ -83,7 +85,7 @@ App({
         this.loginAndCheck(true);
         return;
       }
-      console.error('登录失败:', err);
+      log.error('登录失败:', err);
       this.globalData.isAuthorized = false;
     } finally {
       this._loginChecking = false;
@@ -121,7 +123,7 @@ App({
         return true;
       }
     } catch (err) {
-      console.error('更新用户信息失败:', err);
+      log.error('更新用户信息失败:', err);
     }
     return false;
   },

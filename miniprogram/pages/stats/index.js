@@ -1,5 +1,7 @@
 const API = require('../../utils/api');
 const Loading = require('../../utils/loading');
+const Logger = require('../../utils/logger');
+const log = Logger.module('stats');
 
 const { resolveIconUrl } = require('../../utils/request');
 
@@ -103,7 +105,7 @@ Page({
         Loading.toast('暂无小组');
       }
     } catch (err) {
-      console.error('fetchMyGroups failed:', err);
+      log.error('fetchMyGroups failed:', err);
     }
   },
 
@@ -311,7 +313,7 @@ Page({
         this.buildBarChartData(processedList);
       }
     } catch (err) {
-      console.error('fetchData failed:', err);
+      log.error('fetchData failed:', err);
     } finally {
       this.setData({ loading: false });
     }
