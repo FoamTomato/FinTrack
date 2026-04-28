@@ -1,6 +1,8 @@
 const app = getApp();
 const API = require('../../utils/api');
 const Loading = require('../../utils/loading');
+const Logger = require('../../utils/logger');
+const log = Logger.module('home');
 
 const { resolveIconUrl } = require('../../utils/request');
 
@@ -62,7 +64,7 @@ Page({
         this.setData({ myGroups: res.data || [] });
       }
     } catch (err) {
-      console.error('fetchMyGroups failed:', err);
+      log.error('fetchMyGroups failed:', err);
     }
   },
 
@@ -71,7 +73,7 @@ Page({
    */
   async fetchData() {
     if (!app.globalData.isAuthorized) {
-      console.log('用户未授权，停止加载数据');
+      log.info('用户未授权，停止加载数据');
       return;
     }
 
@@ -121,7 +123,7 @@ Page({
       }
 
     } catch (err) {
-      console.error('fetchData failed:', err);
+      log.error('fetchData failed:', err);
       Loading.error('加载失败');
     } finally {
       this.setData({ loading: false }, () => {
@@ -278,10 +280,11 @@ Page({
 
     if (lastAverage > maxY) maxY = lastAverage;
 
-    // 生成图表数据点
+    // 生成图表数据点（按日期范围生成完整 30 天，而非按返回数据条数）
     const start = new Date(dateRange.current.start);
+    const end = new Date(dateRange.current.end);
     const lastStart = new Date(dateRange.last.start);
-    const cycleDays = currentStats.length;
+    const cycleDays = Math.round((end - start) / (24 * 3600 * 1000)) + 1;
     const chartData = [];
 
     for (let i = 0; i < cycleDays; i++) {
@@ -422,7 +425,7 @@ Page({
       Loading.success('已删除');
       this.fetchData();
     } catch (err) {
-      console.error('onDeleteTransaction failed:', err);
+      log.error('onDeleteTransaction failed:', err);
       Loading.error(err.message || '删除失败');
     } finally {
       Loading.hide();

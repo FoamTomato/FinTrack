@@ -10,7 +10,7 @@
     <view class="fui-card">
       <view class="input-row main-amount">
         <text class="currency">¥</text>
-        <input name="amount" type="digit" placeholder="0.00" value="{{amount}}" placeholder-class="placeholder-amount" focus="{{true}}" />
+        <input name="amount" type="digit" placeholder="0.00" value="{{amount}}" placeholder-class="placeholder-amount" focus="{{true}}" bindinput="onAmountInput" />
       </view>
     </view>
 

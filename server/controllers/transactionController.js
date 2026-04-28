@@ -52,6 +52,9 @@ class TransactionController {
       if (Number(amount) <= 0) {
         throw { type: 'VALIDATION_ERROR', message: '金额必须大于 0' }
       }
+      if (Number(amount) > 99999999.99) {
+        throw { type: 'VALIDATION_ERROR', message: '金额不能超过 99999999.99' }
+      }
       if (![1, 2].includes(Number(type))) {
         throw { type: 'VALIDATION_ERROR', message: 'type 必须为 1(收入) 或 2(支出)' }
       }

@@ -1,5 +1,7 @@
 const API = require('../../utils/api');
 const Loading = require('../../utils/loading');
+const Logger = require('../../utils/logger');
+const log = Logger.module('add');
 
 Page({
   /**
@@ -26,6 +28,10 @@ Page({
     this.loadCategories();
   },
 
+  onShow() {
+    this.loadCategories();
+  },
+
   /**
    * 数据获取 —— 分类树
    */
@@ -46,23 +52,37 @@ Page({
         return;
       }
 
-      // 步骤2：构建两列联动数据
+      // 步骤2：构建第一列
       const firstColumn = tree.map(c => c.name);
-      const firstChildren = tree[0].children || [];
-      const secondColumn = firstChildren.length > 0
-        ? firstChildren.map(c => c.name)
-        : ['无子分类'];
 
-      // 步骤3：更新视图
+      // 步骤3：尝试保留已选中的分类，否则回退到默认 [0, 0]
+      const prevId = this.data.selectedCategoryId;
+      let pIdx = 0;
+      let cIdx = 0;
+      if (prevId) {
+        for (let i = 0; i < tree.length; i++) {
+          const children = tree[i].children || [];
+          const found = children.findIndex(c => c.id === prevId);
+          if (found >= 0) { pIdx = i; cIdx = found; break; }
+        }
+      }
+
+      const children = tree[pIdx].children || [];
+      const secondColumn = children.length > 0
+        ? children.map(c => c.name)
+        : ['无子分类'];
+      const selectedChild = children[cIdx];
+
+      // 步骤4：更新视图
       this.setData({
         categoryTree: tree,
         multiArray: [firstColumn, secondColumn],
-        multiIndex: [0, 0],
-        selectedCategoryName: firstChildren.length > 0 ? firstChildren[0].name : '',
-        selectedCategoryId: firstChildren.length > 0 ? firstChildren[0].id : null
+        multiIndex: [pIdx, cIdx],
+        selectedCategoryName: selectedChild ? selectedChild.name : '',
+        selectedCategoryId: selectedChild ? selectedChild.id : null
       });
     } catch (err) {
-      console.error('loadCategories failed:', err);
+      log.error('loadCategories failed:', err);
     }
   },
 
@@ -132,6 +152,22 @@ Page({
   },
 
   /**
+   * 事件处理 —— 金额输入实时校验
+   * 数据库 DECIMAL(10,2) 上限 99999999.99
+   */
+  onAmountInput(e) {
+    let value = e.detail.value;
+    const match = value.match(/^(\d{0,8})(\.\d{0,2})?/);
+    const truncated = match ? (match[1] + (match[2] || '')) : '';
+    if (truncated !== value) {
+      this.setData({ amount: truncated });
+      Loading.toast('金额最多 8 位整数 2 位小数');
+      return truncated;
+    }
+    this.setData({ amount: value });
+  },
+
+  /**
    * 事件处理 —— 提交记账（防重复）
    */
   async onSubmit(e) {
@@ -144,6 +180,13 @@ Page({
     // 参数校验
     if (!amount) {
       return Loading.toast('请输入金额');
+    }
+    const amountNum = parseFloat(amount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      return Loading.toast('请输入有效金额');
+    }
+    if (amountNum > 99999999.99) {
+      return Loading.toast('金额不能超过 99999999.99');
     }
     if (!selectedCategoryName) {
       return Loading.toast('请选择分类');
@@ -172,7 +215,7 @@ Page({
       }
     } catch (err) {
       Loading.hide();
-      console.error('onSubmit failed:', err);
+      log.error('onSubmit failed:', err);
       Loading.error(err.message || '网络异常');
     } finally {
       this._submitting = false;
