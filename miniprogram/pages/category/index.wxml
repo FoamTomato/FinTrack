@@ -65,13 +65,22 @@
             <view class="picker-tab {{iconTab === 'mine' ? 'active' : ''}}" bindtap="onSwitchIconTab" data-tab="mine">我的图标</view>
           </view>
 
+          <!-- 系统图标：分组横向 tab -->
+          <scroll-view scroll-x class="icon-group-tabs" wx:if="{{iconTab === 'preset'}}" enable-flex>
+            <view class="icon-group-tab {{iconGroupKey === g.key ? 'active' : ''}}"
+                  wx:for="{{iconGroups}}" wx:for-item="g" wx:key="key"
+                  bindtap="onSwitchIconGroup" data-key="{{g.key}}">
+              {{g.label}}
+            </view>
+          </scroll-view>
+
           <scroll-view scroll-y class="icon-grid-scroll">
-            <!-- 系统图标 -->
+            <!-- 系统图标网格（按当前分组） -->
             <view class="icon-grid" wx:if="{{iconTab === 'preset'}}">
-              <view class="icon-grid-item {{newCategoryIcon === item.path ? 'active' : ''}}"
-                    wx:for="{{presetIcons}}" wx:key="file"
+              <view class="icon-grid-item {{newCategoryIcon === item.url ? 'active' : ''}}"
+                    wx:for="{{currentGroupIcons}}" wx:key="url"
                     bindtap="onSelectPresetIcon"
-                    data-path="{{item.path}}" data-url="{{item.url}}">
+                    data-url="{{item.url}}">
                 <image class="icon-grid-img" src="{{item.url}}" mode="aspectFit"></image>
               </view>
             </view>

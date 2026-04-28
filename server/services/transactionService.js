@@ -291,11 +291,12 @@ class TransactionService {
     queryParams.push(type)
 
     // 查询数据（关联分类表取层级关系）
+    // 聚合用 global_id 优先，相同名字的分类（跨成员/跨用户）自动合并
     const sql = `SELECT
         t.amount,
         t.category as trans_category_name,
-        c.id as cid, c.name as cname, c.parent_id, c.icon as cicon,
-        pc.id as pid, pc.name as pname, pc.icon as picon
+        c.id as cid, c.global_id as cgid, c.name as cname, c.parent_id, c.icon as cicon,
+        pc.id as pid, pc.global_id as pgid, pc.name as pname, pc.icon as picon
       FROM transactions t
       LEFT JOIN categories c ON t.category_id = c.id AND c.is_deleted = 0
       LEFT JOIN categories pc ON c.parent_id = pc.id AND pc.is_deleted = 0
@@ -323,24 +324,26 @@ class TransactionService {
       const amount = parseFloat(r.amount)
       totalAmount += amount
 
-      // 确定父级分类
+      // 确定父级分类（优先用 global_id 聚合，跨用户同名归一；fallback 到本地 id / 名称）
       let parentKey, parentName, parentIcon
       if (r.parent_id && r.parent_id > 0 && r.pid) {
-        parentKey = r.pid
+        parentKey = r.pgid ? `g:${r.pgid}` : `l:${r.pid}`
         parentName = r.pname
-        parentIcon = r.picon || '🏷️'
+        parentIcon = r.picon || ''
       } else if (r.cid) {
-        parentKey = r.cid
+        parentKey = r.cgid ? `g:${r.cgid}` : `l:${r.cid}`
         parentName = r.cname
-        parentIcon = r.cicon || '🏷️'
+        parentIcon = r.cicon || ''
       } else {
-        parentKey = r.trans_category_name || 'other'
+        parentKey = `n:${r.trans_category_name || 'other'}`
         parentName = r.trans_category_name || '其他'
-        parentIcon = '🏷️'
+        parentIcon = ''
       }
 
-      // 确定子分类
-      const subKey = r.cid ? r.cid : (r.trans_category_name || 'unknown')
+      // 确定子分类（同样优先用 global_id）
+      const subKey = r.cid
+        ? (r.cgid ? `g:${r.cgid}` : `l:${r.cid}`)
+        : `n:${r.trans_category_name || 'unknown'}`
       const subName = r.cname || r.trans_category_name || '其他'
 
       // 初始化并累加

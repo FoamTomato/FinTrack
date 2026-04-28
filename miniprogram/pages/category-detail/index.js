@@ -1,53 +1,9 @@
 const API = require('../../utils/api');
 const Loading = require('../../utils/loading');
 const { resolveIconUrl } = require('../../utils/request');
-
-const PRESET_ICONS = [
-  { name: '餐饮', file: 'canyin.svg' },
-  { name: '咖啡', file: 'kafei.svg' },
-  { name: '水果', file: 'shuiguo.svg' },
-  { name: '零食', file: 'lingshi.svg' },
-  { name: '早餐', file: 'zaocai.svg' },
-  { name: '火锅', file: 'huoguo.svg' },
-  { name: '交通', file: 'jiaotong.svg' },
-  { name: '地铁', file: 'ditie.svg' },
-  { name: '打车', file: 'dache.svg' },
-  { name: '加油', file: 'jiayou.svg' },
-  { name: '单车', file: 'danche.svg' },
-  { name: '购物', file: 'gouwu.svg' },
-  { name: '衣服', file: 'yifu.svg' },
-  { name: '数码', file: 'shuma.svg' },
-  { name: '护肤', file: 'hufu.svg' },
-  { name: '居住', file: 'juzhu.svg' },
-  { name: '房租', file: 'fangzu.svg' },
-  { name: '电费', file: 'dianfei.svg' },
-  { name: '水费', file: 'shuifei.svg' },
-  { name: '娱乐', file: 'xiuxian.svg' },
-  { name: '电影', file: 'dianying.svg' },
-  { name: '游戏', file: 'youxi.svg' },
-  { name: '旅游', file: 'lvyou.svg' },
-  { name: '健身', file: 'jianshen.svg' },
-  { name: '医疗', file: 'yiliao.svg' },
-  { name: '医药', file: 'yiyao.svg' },
-  { name: '教育', file: 'jiaoyu.svg' },
-  { name: '书籍', file: 'shu.svg' },
-  { name: '人情', file: 'renqing.svg' },
-  { name: '红包', file: 'hongbao.svg' },
-  { name: '宠物', file: 'chongwu.svg' },
-  { name: '工资', file: 'gongzi.svg' },
-  { name: '职业', file: 'zhiye_shouru.svg' },
-  { name: '其他', file: 'qita_shouru.svg' },
-  { name: '投资', file: 'touzi.svg' },
-  { name: '奖励', file: 'jiangli.svg' },
-  { name: '钱包', file: 'qianbao.svg' },
-  { name: '信用卡', file: 'xinyongka.svg' },
-  { name: '礼物', file: 'liwu.svg' },
-  { name: '默认', file: 'default.svg' }
-].map(item => ({
-  ...item,
-  path: `/static/icons/category/${item.file}`,
-  url: resolveIconUrl(`/static/icons/category/${item.file}`)
-}));
+const { PRESET_ICON_GROUPS } = require('../../utils/presetIcons');
+const Logger = require('../../utils/logger');
+const log = Logger.module('category-detail');
 
 Page({
   data: {
@@ -58,7 +14,9 @@ Page({
     newSubName: '',
     newSubIcon: '',
     newSubIconUrl: '',
-    presetIcons: PRESET_ICONS,
+    iconGroups: PRESET_ICON_GROUPS,
+    iconGroupKey: PRESET_ICON_GROUPS[0].key,
+    currentGroupIcons: PRESET_ICON_GROUPS[0].icons,
     userIcons: [],
     iconTab: 'preset'
   },
@@ -71,7 +29,7 @@ Page({
         this.setData({ category });
         this.fetchSubCategories(category.id);
       } catch (e) {
-        console.error('onLoad parse failed:', e);
+        log.error('onLoad parse failed:', e);
       }
     }
   },
@@ -88,7 +46,7 @@ Page({
         this.setData({ subCategories: list });
       }
     } catch (err) {
-      console.error('fetchSubCategories failed:', err);
+      log.error('fetchSubCategories failed:', err);
       Loading.error('加载失败');
     } finally {
       this.setData({ loading: false });
@@ -130,18 +88,25 @@ Page({
         this.setData({ userIcons: res.data || [] });
       }
     } catch (err) {
-      console.error('fetchUserIcons failed:', err);
+      log.error('fetchUserIcons failed:', err);
     }
   },
 
   onSelectPresetIcon(e) {
-    const { path, url } = e.currentTarget.dataset;
-    this.setData({ newSubIcon: path, newSubIconUrl: url });
+    const { url } = e.currentTarget.dataset;
+    this.setData({ newSubIcon: url, newSubIconUrl: url });
   },
 
   onSelectUserIcon(e) {
     const url = e.currentTarget.dataset.url;
     this.setData({ newSubIcon: url, newSubIconUrl: url });
+  },
+
+  onSwitchIconGroup(e) {
+    const key = e.currentTarget.dataset.key;
+    const group = PRESET_ICON_GROUPS.find(g => g.key === key);
+    if (!group) return;
+    this.setData({ iconGroupKey: key, currentGroupIcons: group.icons });
   },
 
   onUploadIcon() {

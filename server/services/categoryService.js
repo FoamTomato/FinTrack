@@ -1,58 +1,95 @@
 const db = require('../config/db')
+const defaultCategories = require('./defaultCategories')
+
+// 进程内缓存：本次进程已为哪些 openid 完成过补齐，避免每次拉树都重跑
+const seededOpenids = new Set()
 
 class CategoryService {
   /**
-   * 初始化用户默认分类（如果不存在）
+   * 查询或创建全局分类映射 ID（去重纽带）
+   * 同名 (name, type, parentGlobalId) 跨用户共享同一个 global_id
+   */
+  async _getOrCreateGlobalId(name, type, parentGlobalId = 0, icon = '', isDefault = 0) {
+    const [rows] = await db.execute(
+      'SELECT id FROM category_global_map WHERE name = ? AND type = ? AND parent_global_id = ?',
+      [name, type, parentGlobalId]
+    )
+    if (rows.length > 0) return rows[0].id
+
+    const [res] = await db.execute(
+      'INSERT INTO category_global_map (name, type, parent_global_id, icon, is_default) VALUES (?, ?, ?, ?, ?)',
+      [name, type, parentGlobalId, icon || '', isDefault]
+    )
+    return res.insertId
+  }
+
+  /**
+   * 初始化（或补齐）用户默认分类
+   * 幂等：父按 (openid, type, name) 同名跳过，子按 (openid, parent_id, name) 同名跳过
+   * 已存在但被逻辑删除的视为存在，不会重新插入（尊重用户删除意愿）
+   * 新插入时会回填 global_id；老数据 global_id 为 NULL 时也补齐
    */
   async initDefaultCategories(openid) {
-    // 检查是否已有分类
-    const [rows] = await db.execute(
-      'SELECT COUNT(*) as count FROM categories WHERE openid = ? AND is_deleted = 0',
+    // 一次性查出该用户全部分类（含已删除），避免循环里重复查询
+    const [existing] = await db.execute(
+      'SELECT id, name, type, parent_id, global_id FROM categories WHERE openid = ?',
       [openid]
     )
-    if (rows[0].count > 0) return true
 
-    // 默认两级分类结构
-    const defaultData = [
-      {
-        name: '餐饮', type: 2, icon: '🍔',
-        children: [
-          { name: '早午晚餐', icon: '🍛' },
-          { name: '饮料水果', icon: '🍎' },
-          { name: '零食小吃', icon: '🍪' }
-        ]
-      },
-      {
-        name: '交通', type: 2, icon: '🚗',
-        children: [
-          { name: '公共交通', icon: '🚌' },
-          { name: '打车代驾', icon: '🚕' },
-          { name: '自费加油', icon: '⛽' }
-        ]
-      },
-      {
-        name: '工资', type: 1, icon: '💰',
-        children: [
-          { name: '基本工资', icon: '💵' },
-          { name: '奖金绩效', icon: '📈' }
-        ]
+    // 一级索引：type|name -> { id, global_id }
+    const parentIndex = new Map()
+    // 二级索引：parentId|name -> { id, global_id }
+    const childIndex = new Map()
+    for (const row of existing) {
+      const entry = { id: row.id, global_id: row.global_id }
+      if (Number(row.parent_id) === 0) {
+        parentIndex.set(`${row.type}|${row.name}`, entry)
+      } else {
+        childIndex.set(`${row.parent_id}|${row.name}`, entry)
       }
-    ]
+    }
 
-    // 逐级插入父分类和子分类
-    for (const parent of defaultData) {
-      const [res] = await db.execute(
-        'INSERT INTO categories (openid, name, type, parent_id, icon, is_default) VALUES (?, ?, ?, 0, ?, 1)',
-        [openid, parent.name, parent.type, parent.icon]
+    // 逐项补齐
+    for (const parent of defaultCategories) {
+      const parentKey = `${parent.type}|${parent.name}`
+      let parentEntry = parentIndex.get(parentKey)
+
+      // 一级分类的 global_id（默认分类标记 is_default=1）
+      const parentGlobalId = await this._getOrCreateGlobalId(
+        parent.name, parent.type, 0, parent.icon, 1
       )
-      const parentId = res.insertId
 
-      if (parent.children) {
-        for (const child of parent.children) {
-          await db.execute(
-            'INSERT INTO categories (openid, name, type, parent_id, icon, is_default) VALUES (?, ?, ?, ?, ?, 1)',
-            [openid, child.name, parent.type, parentId, child.icon]
+      if (!parentEntry) {
+        const [res] = await db.execute(
+          'INSERT INTO categories (openid, global_id, name, type, parent_id, icon, is_default) VALUES (?, ?, ?, ?, 0, ?, 1)',
+          [openid, parentGlobalId, parent.name, parent.type, parent.icon]
+        )
+        parentEntry = { id: res.insertId, global_id: parentGlobalId }
+        parentIndex.set(parentKey, parentEntry)
+      } else if (!parentEntry.global_id) {
+        // 老数据补 global_id
+        await db.execute('UPDATE categories SET global_id = ? WHERE id = ?', [parentGlobalId, parentEntry.id])
+        parentEntry.global_id = parentGlobalId
+      }
+
+      if (!parent.children) continue
+
+      for (const child of parent.children) {
+        const childKey = `${parentEntry.id}|${child.name}`
+        const childGlobalId = await this._getOrCreateGlobalId(
+          child.name, parent.type, parentGlobalId, child.icon, 1
+        )
+
+        const childEntry = childIndex.get(childKey)
+        if (!childEntry) {
+          const [res] = await db.execute(
+            'INSERT INTO categories (openid, global_id, name, type, parent_id, icon, is_default) VALUES (?, ?, ?, ?, ?, ?, 1)',
+            [openid, childGlobalId, child.name, parent.type, parentEntry.id, child.icon]
           )
+          childIndex.set(childKey, { id: res.insertId, global_id: childGlobalId })
+        } else if (!childEntry.global_id) {
+          await db.execute('UPDATE categories SET global_id = ? WHERE id = ?', [childGlobalId, childEntry.id])
+          childEntry.global_id = childGlobalId
         }
       }
     }
@@ -64,8 +101,11 @@ class CategoryService {
    * 获取用户分类列表（树状结构）
    */
   async getTree(openid, type) {
-    // 确保有默认分类
-    await this.initDefaultCategories(openid)
+    // 确保已补齐默认分类（每个 openid 在本进程内只跑一次）
+    if (!seededOpenids.has(openid)) {
+      await this.initDefaultCategories(openid)
+      seededOpenids.add(openid)
+    }
 
     // 构建查询条件
     const conditions = ['c.openid = ?', 'c.is_deleted = 0']
@@ -117,12 +157,15 @@ class CategoryService {
 
   /**
    * 创建分类
+   * 关键：按 (name, type, parent_global_id) 复用全局 ID，实现跨用户去重
    */
   async create(data) {
-    // 校验父分类归属和类型匹配
+    let parentGlobalId = 0
+
+    // 校验父分类归属和类型匹配，并取出父的 global_id
     if (data.parentId) {
       const [rows] = await db.execute(
-        'SELECT id, type FROM categories WHERE id = ? AND openid = ? AND is_deleted = 0',
+        'SELECT id, type, global_id FROM categories WHERE id = ? AND openid = ? AND is_deleted = 0',
         [data.parentId, data.openid]
       )
       if (rows.length === 0) {
@@ -131,14 +174,20 @@ class CategoryService {
       if (rows[0].type !== data.type) {
         throw { type: 'VALIDATION_ERROR', message: '子分类类型必须与父分类一致' }
       }
+      parentGlobalId = rows[0].global_id || 0
     }
 
+    // 取/造 global_id（用户自定义不带 is_default 标记）
+    const globalId = await this._getOrCreateGlobalId(
+      data.name, data.type, parentGlobalId, data.icon || '', 0
+    )
+
     // 插入分类记录
-    const sql = 'INSERT INTO categories (openid, name, type, parent_id, icon) VALUES (?, ?, ?, ?, ?)'
+    const sql = 'INSERT INTO categories (openid, global_id, name, type, parent_id, icon) VALUES (?, ?, ?, ?, ?, ?)'
     const [res] = await db.execute(sql, [
-      data.openid, data.name, data.type, data.parentId || 0, data.icon || ''
+      data.openid, globalId, data.name, data.type, data.parentId || 0, data.icon || ''
     ])
-    return { id: res.insertId }
+    return { id: res.insertId, globalId }
   }
 
   /**

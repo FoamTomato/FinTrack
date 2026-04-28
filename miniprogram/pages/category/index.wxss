@@ -319,6 +319,30 @@ page {
   box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
 }
 
+/* 分组横向 Tab */
+.icon-group-tabs {
+  white-space: nowrap;
+  margin-bottom: 16rpx;
+  padding: 4rpx 0;
+}
+
+.icon-group-tab {
+  display: inline-block;
+  font-size: 24rpx;
+  color: #888;
+  padding: 10rpx 22rpx;
+  margin-right: 12rpx;
+  background: #f5f6f7;
+  border-radius: 30rpx;
+  transition: all 0.2s;
+}
+
+.icon-group-tab.active {
+  background: #07c160;
+  color: #fff;
+  font-weight: 600;
+}
+
 .icon-empty-hint {
   width: 100%;
   text-align: center;
