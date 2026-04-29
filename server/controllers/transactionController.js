@@ -212,6 +212,47 @@ class TransactionController {
   }
 
   /**
+   * 更新账单（仅金额 / 日期 / 备注）
+   */
+  async update(req, res, next) {
+    try {
+      const openid = req.headers['x-wx-openid']
+      const { id, amount, date, note, category, category_id } = req.body
+
+      if (!id) {
+        throw { type: 'VALIDATION_ERROR', message: '账单 ID 不能为空' }
+      }
+      if (amount === undefined || amount === null || isNaN(Number(amount))) {
+        throw { type: 'VALIDATION_ERROR', message: '金额格式错误' }
+      }
+      if (Number(amount) <= 0) {
+        throw { type: 'VALIDATION_ERROR', message: '金额必须大于 0' }
+      }
+      if (Number(amount) > 99999999.99) {
+        throw { type: 'VALIDATION_ERROR', message: '金额不能超过 99999999.99' }
+      }
+      if (!date || !DATE_REGEX.test(date)) {
+        throw { type: 'VALIDATION_ERROR', message: '日期格式错误，应为 YYYY-MM-DD' }
+      }
+      if (!category) {
+        throw { type: 'VALIDATION_ERROR', message: '分类不能为空' }
+      }
+
+      await transactionService.update(id, openid, {
+        amount: Number(amount),
+        date,
+        note,
+        category,
+        category_id
+      })
+
+      success(res, null, '更新成功')
+    } catch (err) {
+      next(err)
+    }
+  }
+
+  /**
    * 删除账单
    */
   async delete(req, res, next) {

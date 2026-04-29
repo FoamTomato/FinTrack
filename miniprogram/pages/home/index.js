@@ -401,6 +401,37 @@ Page({
   },
 
   /**
+   * 事件处理 —— 点击明细跳转编辑
+   */
+  onEditTransaction(e) {
+    if (this._didSwipe) {
+      this._didSwipe = false;
+      return;
+    }
+
+    const { id, groupIndex, index } = e.currentTarget.dataset;
+    const item = this.data.groupedTransactions[groupIndex] &&
+                 this.data.groupedTransactions[groupIndex].items[index];
+    if (!item) return;
+
+    if (item.x && item.x !== 0) {
+      this.resetSwipeStates();
+      return;
+    }
+
+    app.globalData.editingTransaction = {
+      id: item.id,
+      type: item.type,
+      amount: item.amount,
+      date: item.date,
+      note: item.note,
+      category: item.category,
+      category_id: item.category_id
+    };
+    wx.navigateTo({ url: `/pages/edit/index?id=${id}` });
+  },
+
+  /**
    * 事件处理 —— 删除交易
    */
   async onDeleteTransaction(e) {
@@ -463,10 +494,17 @@ Page({
     this.setData({ groupedTransactions: groups });
   },
 
-  onSwipeStart() {},
+  onSwipeStart() {
+    this._didSwipe = false;
+    this._touchStartX = null;
+  },
 
   onSwipeChange(e) {
     this._currentX = e.detail.x;
+    // source 为 'touch' 表示用户实际拖动；setData 引起的回调 source 为 ''
+    if (e.detail.source === 'touch') {
+      this._didSwipe = true;
+    }
   },
 
   onSwipeEnd(e) {

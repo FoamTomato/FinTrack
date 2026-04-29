@@ -2,6 +2,7 @@
   "pages": [
     "pages/home/index",
     "pages/add/index",
+    "pages/edit/index",
     "pages/settings/index",
     "pages/category/index",
     "pages/category-detail/index",

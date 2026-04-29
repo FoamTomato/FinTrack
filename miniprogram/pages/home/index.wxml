@@ -107,17 +107,19 @@
         <view class="fui-list">
           <block wx:for="{{group.items}}" wx:key="id">
             <movable-area class="list-row-area">
-                <movable-view class="list-row-content" 
-                            direction="horizontal" 
-                            damping="40" 
-                            x="{{item.x}}" 
+                <movable-view class="list-row-content"
+                            direction="horizontal"
+                            damping="40"
+                            x="{{item.x}}"
                             data-index="{{index}}"
                             data-group-index="{{groupIndex}}"
+                            data-id="{{item.id}}"
                             bindchange="onSwipeChange"
                             bindtouchstart="onSwipeStart"
                             bindtouchend="onSwipeEnd"
+                            bindtap="onEditTransaction"
                             style="width: calc(100% + 150rpx); display: flex;">
-                  
+
                   <view class="fui-list-cell" style="flex: 1; padding-left: 20rpx;">
                     <view class="cell-icon">
                       <image wx:if="{{item.iconUrl}}" class="cell-icon-img" src="{{item.iconUrl}}" mode="aspectFit"></image>

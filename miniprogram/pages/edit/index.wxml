@@ -1,9 +1,8 @@
 <view class="container">
   <form bindsubmit="onSubmit">
-    <!-- 类型切换 (和首页筛选栏统一) -->
+    <!-- 类型展示 (只读) -->
     <view class="type-tab-bar">
-      <view class="tab-item {{transactionType == 2 ? 'active expense' : ''}}" bindtap="onChangeTransactionType" data-type="2">支出</view>
-      <view class="tab-item {{transactionType == 1 ? 'active income' : ''}}" bindtap="onChangeTransactionType" data-type="1">收入</view>
+      <view class="tab-item active {{transactionType == 1 ? 'income' : 'expense'}}">{{transactionType == 1 ? '收入' : '支出'}}</view>
     </view>
 
     <!-- 输入主卡片 -->
@@ -61,7 +60,7 @@
     </view>
 
     <view class="footer-action">
-      <button form-type="submit" class="submit-btn-premium">保存记录</button>
+      <button form-type="submit" class="submit-btn-premium">保存修改</button>
     </view>
   </form>
 </view>

@@ -41,6 +41,44 @@ class TransactionService {
   }
 
   /**
+   * 更新账单（金额 / 日期 / 备注 / 分类，含权限校验）
+   */
+  async update(id, openid, data) {
+    const [rows] = await db.execute(
+      'SELECT id, type, category_id FROM transactions WHERE id = ? AND openid = ?',
+      [id, openid]
+    )
+    if (rows.length === 0) {
+      throw { type: 'VALIDATION_ERROR', message: '记录不存在或无权修改' }
+    }
+
+    // 校验新分类归属与类型匹配（避免支出账单挂在收入分类下）
+    if (data.category_id) {
+      await this.validateCategory(data.category_id, openid, rows[0].type)
+    }
+
+    await db.execute(
+      'UPDATE transactions SET amount = ?, date = ?, note = ?, category = ?, category_id = ? WHERE id = ?',
+      [
+        data.amount,
+        data.date,
+        data.note || '',
+        data.category || '未分类',
+        data.category_id || 0,
+        id
+      ]
+    )
+
+    // 更新分类使用频率（与 create 一致）
+    if (data.category_id && data.category_id > 0 && data.category_id !== rows[0].category_id) {
+      const statsSql = `INSERT INTO category_usage_stats (openid, category_id, usage_count)
+        VALUES (?, ?, 1)
+        ON DUPLICATE KEY UPDATE usage_count = usage_count + 1`
+      await db.execute(statsSql, [openid, data.category_id])
+    }
+  }
+
+  /**
    * 删除账单（含权限校验）
    */
   async delete(id, openid) {
@@ -104,7 +142,7 @@ class TransactionService {
     const offset = (page - 1) * pageSize
 
     // 执行查询
-    const sql = `SELECT t.id, t.type, t.amount, t.openid,
+    const sql = `SELECT t.id, t.type, t.amount, t.openid, t.category_id,
         COALESCE(c.name, t.category) as category,
         c.icon,
         u.nickname as creatorName,

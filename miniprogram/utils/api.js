@@ -47,6 +47,11 @@ class API {
     return request('/api/transaction/create', 'POST', data);
   }
 
+  /** 更新交易记录（仅金额 / 日期 / 备注） */
+  static async updateTransaction(data) {
+    return request('/api/transaction/update', 'POST', data);
+  }
+
   /** 删除交易记录 */
   static async deleteTransaction(id) {
     return request('/api/transaction/delete', 'POST', { id });

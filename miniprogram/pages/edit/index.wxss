@@ -1,0 +1,5 @@
+@import "../add/index.wxss";
+
+.picker-value.disabled {
+  color: #999;
+}

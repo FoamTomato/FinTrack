@@ -20,6 +20,9 @@ router.get('/trend', (req, res, next) => transactionController.trend(req, res, n
 // 统计分析
 router.get('/analysis', (req, res, next) => transactionController.analysis(req, res, next))
 
+// 更新账单
+router.post('/update', (req, res, next) => transactionController.update(req, res, next))
+
 // 删除账单
 router.post('/delete', (req, res, next) => transactionController.delete(req, res, next))
 
