@@ -14,6 +14,12 @@ router.post('/create', (req, res, next) => categoryController.create(req, res, n
 // 更新分类
 router.post('/update', (req, res, next) => categoryController.update(req, res, next))
 
+// 切换启用状态
+router.post('/toggle', (req, res, next) => categoryController.toggleEnabled(req, res, next))
+
+// 批量切换启用状态
+router.post('/batch-toggle', (req, res, next) => categoryController.batchToggleEnabled(req, res, next))
+
 // 删除分类
 router.post('/delete', (req, res, next) => categoryController.delete(req, res, next))
 

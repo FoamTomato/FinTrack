@@ -432,3 +432,142 @@ page {
   color: #999;
   font-weight: 300;
 }
+
+/* ======== 启用/禁用 + 批量管理 ======== */
+.batch-toggle {
+  position: absolute;
+  right: 30rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 26rpx;
+  color: #07c160;
+  padding: 12rpx 24rpx;
+  background: #f0fdf4;
+  border-radius: 24rpx;
+  font-weight: 500;
+}
+
+.tab-header {
+  position: sticky;
+}
+
+.category-item.disabled {
+  opacity: 0.55;
+}
+
+.disabled-tag {
+  margin-left: 12rpx;
+  font-size: 22rpx;
+  color: #999;
+  background: #f0f2f5;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+/* 启用开关 */
+.enable-switch {
+  width: 72rpx;
+  height: 40rpx;
+  border-radius: 20rpx;
+  position: relative;
+  margin-right: 20rpx;
+  transition: background 0.2s;
+}
+
+.enable-switch.on { background: #07c160; }
+.enable-switch.off { background: #d0d3d6; }
+
+.switch-knob {
+  position: absolute;
+  top: 4rpx;
+  left: 4rpx;
+  width: 32rpx;
+  height: 32rpx;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.2);
+  transition: transform 0.2s;
+}
+
+.enable-switch.on .switch-knob { transform: translateX(32rpx); }
+
+/* 批量复选框 */
+.category-item.in-batch {
+  padding-left: 28rpx;
+}
+
+.checkbox {
+  width: 36rpx;
+  height: 36rpx;
+  border: 3rpx solid #ccc;
+  border-radius: 50%;
+  margin-right: 20rpx;
+  background: #fff;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.checkbox.checked {
+  background: #07c160;
+  border-color: #07c160;
+}
+
+.checkbox.checked::after {
+  content: '';
+  position: absolute;
+  left: 10rpx;
+  top: 4rpx;
+  width: 8rpx;
+  height: 16rpx;
+  border: solid #fff;
+  border-width: 0 4rpx 4rpx 0;
+  transform: rotate(45deg);
+}
+
+.category-item.selected {
+  background: #f0fdf4;
+  border: 2rpx solid #07c160;
+}
+
+/* 批量操作栏 */
+.batch-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  padding: 24rpx 30rpx calc(24rpx + env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 -8rpx 20rpx rgba(0,0,0,0.06);
+  z-index: 200;
+}
+
+.batch-count {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.batch-actions {
+  display: flex;
+  gap: 16rpx;
+}
+
+.batch-btn {
+  font-size: 28rpx;
+  padding: 16rpx 32rpx;
+  border-radius: 32rpx;
+  font-weight: 600;
+}
+
+.batch-btn.enable {
+  background: #07c160;
+  color: #fff;
+}
+
+.batch-btn.disable {
+  background: #fef2f2;
+  color: #ff4d4f;
+}

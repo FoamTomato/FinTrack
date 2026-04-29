@@ -1,3 +1,13 @@
+<wxs module="utils">
+  var includes = function(list, id) {
+    if (!list) return false;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i] === id) return true;
+    }
+    return false;
+  };
+  module.exports = { includes: includes };
+</wxs>
 <view class="container">
   <!-- 页面顶部背景 -->
   <view class="page-top-bg"></view>
@@ -5,18 +15,30 @@
   <view class="tab-header">
     <view class="tab-item {{currentType === 2 ? 'active' : ''}}" bindtap="onSwitchType" data-type="2">支出</view>
     <view class="tab-item {{currentType === 1 ? 'active' : ''}}" bindtap="onSwitchType" data-type="1">收入</view>
+    <view class="batch-toggle" bindtap="onToggleBatchMode">{{batchMode ? '完成' : '批量'}}</view>
   </view>
 
   <view class="category-list">
-    <view class="category-item" wx:for="{{categories}}" wx:key="id" bindtap="onGoToDetail" data-item="{{item}}" hover-class="item-hover">
+    <view class="category-item {{batchMode ? 'in-batch' : ''}} {{utils.includes(selectedIds, item.id) ? 'selected' : ''}} {{item.is_enabled == 0 ? 'disabled' : ''}}"
+          wx:for="{{categories}}" wx:key="id"
+          bindtap="{{batchMode ? 'onToggleSelect' : 'onGoToDetail'}}"
+          data-item="{{item}}" data-id="{{item.id}}"
+          hover-class="item-hover">
       <view class="item-left">
+        <!-- 批量模式下：复选框；否则：图标 -->
+        <view wx:if="{{batchMode}}" class="checkbox {{utils.includes(selectedIds, item.id) ? 'checked' : ''}}"></view>
         <view class="item-icon">
           <image wx:if="{{item.iconUrl}}" class="icon-img" src="{{item.iconUrl}}" mode="aspectFit"></image>
           <text wx:else>{{item.icon}}</text>
         </view>
         <text class="item-name">{{item.name}}</text>
+        <view wx:if="{{item.is_enabled == 0}}" class="disabled-tag">已禁用</view>
       </view>
-      <view class="item-right">
+      <view class="item-right" wx:if="{{!batchMode}}">
+        <view class="enable-switch {{item.is_enabled == 1 ? 'on' : 'off'}}"
+              catchtap="onToggleEnabled" data-id="{{item.id}}" data-enabled="{{item.is_enabled == 1}}">
+          <view class="switch-knob"></view>
+        </view>
         <block wx:if="{{item.is_default == 1}}">
           <view class="system-tag">系统</view>
         </block>
@@ -26,11 +48,20 @@
         </block>
       </view>
     </view>
-    <view style="height: 120rpx;"></view>
+    <view style="height: 200rpx;"></view>
   </view>
 
-  <!-- 添加按钮 -->
-  <view class="add-btn-wrapper" bindtap="onShowAddModal">
+  <!-- 批量操作栏 -->
+  <view class="batch-bar" wx:if="{{batchMode}}">
+    <text class="batch-count">已选 {{selectedIds.length}} 项</text>
+    <view class="batch-actions">
+      <view class="batch-btn enable" bindtap="onBatchEnable">批量启用</view>
+      <view class="batch-btn disable" bindtap="onBatchDisable">批量禁用</view>
+    </view>
+  </view>
+
+  <!-- 添加按钮：批量模式下隐藏 -->
+  <view class="add-btn-wrapper" bindtap="onShowAddModal" wx:if="{{!batchMode}}">
     <view class="add-icon">+</view>
     <text>添加分类</text>
   </view>

@@ -75,8 +75,20 @@ class API {
   // ==================== 分类模块 ====================
 
   /** 获取分类树（二级联动） */
-  static async getCategoryTree(type) {
-    return request('/api/category/tree', 'GET', { type });
+  static async getCategoryTree(type, onlyEnabled = false) {
+    const params = { type };
+    if (onlyEnabled) params.onlyEnabled = 1;
+    return request('/api/category/tree', 'GET', params);
+  }
+
+  /** 切换单个分类启用状态 */
+  static async toggleCategoryEnabled(id, isEnabled) {
+    return request('/api/category/toggle', 'POST', { id, isEnabled: isEnabled ? 1 : 0 });
+  }
+
+  /** 批量切换分类启用状态 */
+  static async batchToggleCategoryEnabled(ids, isEnabled) {
+    return request('/api/category/batch-toggle', 'POST', { ids, isEnabled: isEnabled ? 1 : 0 });
   }
 
   /** 获取分类列表（扁平，支持 parentId 过滤） */

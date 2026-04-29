@@ -10,7 +10,8 @@ async function migrate() {
     'v3_user_profile.sql',
     'v4_category_stats.sql',
     'v5_soft_delete_support.sql',
-    'v6_category_global_id.sql'
+    'v6_category_global_id.sql',
+    'v7_category_is_enabled.sql'
   ];
 
   for (const fileName of sqlFiles) {

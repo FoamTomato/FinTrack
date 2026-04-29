@@ -18,7 +18,10 @@ Page({
     iconGroupKey: PRESET_ICON_GROUPS[0].key,
     currentGroupIcons: PRESET_ICON_GROUPS[0].icons,
     userIcons: [],
-    iconTab: 'preset'
+    iconTab: 'preset',
+    // 批量管理
+    batchMode: false,
+    selectedIds: []
   },
 
   onLoad() {
@@ -28,7 +31,71 @@ Page({
   onSwitchType(e) {
     const type = parseInt(e.currentTarget.dataset.type);
     if (type !== this.data.currentType) {
-      this.setData({ currentType: type }, () => this.fetchCategories());
+      this.setData({ currentType: type, selectedIds: [] }, () => this.fetchCategories());
+    }
+  },
+
+  // ======== 批量管理 ========
+  onToggleBatchMode() {
+    this.setData({
+      batchMode: !this.data.batchMode,
+      selectedIds: []
+    });
+  },
+
+  onToggleSelect(e) {
+    const id = e.currentTarget.dataset.id;
+    const set = new Set(this.data.selectedIds);
+    if (set.has(id)) set.delete(id); else set.add(id);
+    this.setData({ selectedIds: Array.from(set) });
+  },
+
+  async onBatchEnable() {
+    await this._doBatchToggle(true);
+  },
+
+  async onBatchDisable() {
+    await this._doBatchToggle(false);
+  },
+
+  async _doBatchToggle(enabled) {
+    const { selectedIds } = this.data;
+    if (selectedIds.length === 0) return Loading.toast('请先选择');
+
+    Loading.show(enabled ? '启用中...' : '禁用中...');
+    try {
+      const res = await API.batchToggleCategoryEnabled(selectedIds, enabled);
+      if (res.code === 0) {
+        Loading.success('已更新');
+        this.setData({ selectedIds: [] });
+        this.fetchCategories();
+      } else {
+        Loading.error(res.msg || '操作失败');
+      }
+    } catch (err) {
+      log.error('batch toggle failed:', err);
+      Loading.error('网络异常');
+    } finally {
+      Loading.hide();
+    }
+  },
+
+  async onToggleEnabled(e) {
+    const { id, enabled } = e.currentTarget.dataset;
+    const next = !enabled;
+    Loading.show(next ? '启用中...' : '禁用中...');
+    try {
+      const res = await API.toggleCategoryEnabled(id, next);
+      if (res.code === 0) {
+        this.fetchCategories();
+      } else {
+        Loading.error(res.msg || '操作失败');
+      }
+    } catch (err) {
+      log.error('toggle failed:', err);
+      Loading.error('网络异常');
+    } finally {
+      Loading.hide();
     }
   },
 

@@ -10,12 +10,57 @@ class CategoryController {
       // 提取参数
       const openid = req.headers['x-wx-openid']
       const { type } = req.query
+      const onlyEnabled = req.query.onlyEnabled === '1' || req.query.onlyEnabled === 'true'
 
       // 调用 Service
-      const data = await categoryService.getTree(openid, type)
+      const data = await categoryService.getTree(openid, type, onlyEnabled)
 
       // 返回响应
       success(res, data)
+    } catch (err) {
+      next(err)
+    }
+  }
+
+  /**
+   * 切换单个分类启用状态
+   */
+  async toggleEnabled(req, res, next) {
+    try {
+      const openid = req.headers['x-wx-openid']
+      const { id, isEnabled } = req.body
+
+      if (!id) {
+        throw { type: 'VALIDATION_ERROR', message: 'id 不能为空' }
+      }
+      if (isEnabled !== 0 && isEnabled !== 1 && isEnabled !== true && isEnabled !== false) {
+        throw { type: 'VALIDATION_ERROR', message: 'isEnabled 必须为 0 或 1' }
+      }
+
+      await categoryService.toggleEnabled(id, openid, !!Number(isEnabled))
+      success(res, null, '已更新')
+    } catch (err) {
+      next(err)
+    }
+  }
+
+  /**
+   * 批量切换分类启用状态
+   */
+  async batchToggleEnabled(req, res, next) {
+    try {
+      const openid = req.headers['x-wx-openid']
+      const { ids, isEnabled } = req.body
+
+      if (!Array.isArray(ids) || ids.length === 0) {
+        throw { type: 'VALIDATION_ERROR', message: 'ids 不能为空' }
+      }
+      if (isEnabled !== 0 && isEnabled !== 1 && isEnabled !== true && isEnabled !== false) {
+        throw { type: 'VALIDATION_ERROR', message: 'isEnabled 必须为 0 或 1' }
+      }
+
+      await categoryService.batchToggleEnabled(ids, openid, !!Number(isEnabled))
+      success(res, null, '已更新')
     } catch (err) {
       next(err)
     }

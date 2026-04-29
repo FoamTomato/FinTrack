@@ -38,7 +38,7 @@ Page({
   async loadCategories() {
     try {
       // 步骤1：请求分类树
-      const res = await API.getCategoryTree(this.data.transactionType);
+      const res = await API.getCategoryTree(this.data.transactionType, true);
       if (res.code !== 0) return;
 
       const tree = res.data || [];

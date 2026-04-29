@@ -45,7 +45,7 @@ Page({
    */
   async loadCategories() {
     try {
-      const res = await API.getCategoryTree(this.data.transactionType);
+      const res = await API.getCategoryTree(this.data.transactionType, true);
       if (res.code !== 0) return;
 
       const tree = res.data || [];

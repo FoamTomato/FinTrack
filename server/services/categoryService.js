@@ -1,5 +1,6 @@
 const db = require('../config/db')
 const defaultCategories = require('./defaultCategories')
+const { isDefaultEnabled } = require('./defaultEnabled')
 
 // 进程内缓存：本次进程已为哪些 openid 完成过补齐，避免每次拉树都重跑
 const seededOpenids = new Set()
@@ -60,9 +61,10 @@ class CategoryService {
       )
 
       if (!parentEntry) {
+        const enabled = isDefaultEnabled(parent.name) ? 1 : 0
         const [res] = await db.execute(
-          'INSERT INTO categories (openid, global_id, name, type, parent_id, icon, is_default) VALUES (?, ?, ?, ?, 0, ?, 1)',
-          [openid, parentGlobalId, parent.name, parent.type, parent.icon]
+          'INSERT INTO categories (openid, global_id, name, type, parent_id, icon, is_default, is_enabled) VALUES (?, ?, ?, ?, 0, ?, 1, ?)',
+          [openid, parentGlobalId, parent.name, parent.type, parent.icon, enabled]
         )
         parentEntry = { id: res.insertId, global_id: parentGlobalId }
         parentIndex.set(parentKey, parentEntry)
@@ -82,9 +84,10 @@ class CategoryService {
 
         const childEntry = childIndex.get(childKey)
         if (!childEntry) {
+          const enabled = isDefaultEnabled(parent.name, child.name) ? 1 : 0
           const [res] = await db.execute(
-            'INSERT INTO categories (openid, global_id, name, type, parent_id, icon, is_default) VALUES (?, ?, ?, ?, ?, ?, 1)',
-            [openid, childGlobalId, child.name, parent.type, parentEntry.id, child.icon]
+            'INSERT INTO categories (openid, global_id, name, type, parent_id, icon, is_default, is_enabled) VALUES (?, ?, ?, ?, ?, ?, 1, ?)',
+            [openid, childGlobalId, child.name, parent.type, parentEntry.id, child.icon, enabled]
           )
           childIndex.set(childKey, { id: res.insertId, global_id: childGlobalId })
         } else if (!childEntry.global_id) {
@@ -99,8 +102,11 @@ class CategoryService {
 
   /**
    * 获取用户分类列表（树状结构）
+   * @param {string} openid
+   * @param {number} [type]
+   * @param {boolean} [onlyEnabled] 仅返回启用项，且过滤掉子项全部禁用的一级
    */
-  async getTree(openid, type) {
+  async getTree(openid, type, onlyEnabled = false) {
     // 确保已补齐默认分类（每个 openid 在本进程内只跑一次）
     if (!seededOpenids.has(openid)) {
       await this.initDefaultCategories(openid)
@@ -116,6 +122,10 @@ class CategoryService {
       params.push(type)
     }
 
+    if (onlyEnabled) {
+      conditions.push('c.is_enabled = 1')
+    }
+
     // 查询分类（含使用频率）
     const sql = `SELECT c.*, COALESCE(s.usage_count, 0) as usage_count
       FROM categories c
@@ -126,11 +136,18 @@ class CategoryService {
     const [rows] = await db.execute(sql, params)
 
     // 组装树形结构
-    const rootNodes = rows.filter(r => r.parent_id == 0)
-    return rootNodes.map(root => ({
+    let rootNodes = rows.filter(r => r.parent_id == 0)
+    let tree = rootNodes.map(root => ({
       ...root,
       children: rows.filter(r => r.parent_id == root.id)
     }))
+
+    // onlyEnabled 时，剔除没有任何启用子分类的一级（避免选了一级却没二级）
+    if (onlyEnabled) {
+      tree = tree.filter(node => (node.children || []).length > 0)
+    }
+
+    return tree
   }
 
   /**
@@ -199,6 +216,72 @@ class CategoryService {
       [data.name, data.icon || '', data.sortOrder || 0, id, openid]
     )
     return res.affectedRows > 0
+  }
+
+  /**
+   * 切换单个分类的启用状态
+   * 一级分类禁用时，连带其下所有子分类一并禁用；启用时只启用自身（子项让用户自行启用）
+   */
+  async toggleEnabled(id, openid, enabled) {
+    const flag = enabled ? 1 : 0
+
+    const [rows] = await db.execute(
+      'SELECT id, parent_id FROM categories WHERE id = ? AND openid = ? AND is_deleted = 0',
+      [id, openid]
+    )
+    if (rows.length === 0) {
+      throw { type: 'VALIDATION_ERROR', message: '分类不存在或无权操作' }
+    }
+
+    const isParent = Number(rows[0].parent_id) === 0
+
+    await db.execute(
+      'UPDATE categories SET is_enabled = ? WHERE id = ? AND openid = ?',
+      [flag, id, openid]
+    )
+
+    // 一级禁用时连带禁用子分类
+    if (isParent && flag === 0) {
+      await db.execute(
+        'UPDATE categories SET is_enabled = 0 WHERE parent_id = ? AND openid = ? AND is_deleted = 0',
+        [id, openid]
+      )
+    }
+  }
+
+  /**
+   * 批量切换启用状态
+   * 一级分类被禁用时连带禁用其下子分类
+   */
+  async batchToggleEnabled(ids, openid, enabled) {
+    if (!Array.isArray(ids) || ids.length === 0) return
+    const flag = enabled ? 1 : 0
+
+    // 拿出归属本人且未删的项
+    const placeholders = ids.map(() => '?').join(',')
+    const [rows] = await db.execute(
+      `SELECT id, parent_id FROM categories WHERE id IN (${placeholders}) AND openid = ? AND is_deleted = 0`,
+      [...ids, openid]
+    )
+    if (rows.length === 0) return
+
+    const validIds = rows.map(r => r.id)
+    const validPlaceholders = validIds.map(() => '?').join(',')
+    await db.execute(
+      `UPDATE categories SET is_enabled = ? WHERE id IN (${validPlaceholders}) AND openid = ?`,
+      [flag, ...validIds, openid]
+    )
+
+    if (flag === 0) {
+      const parentIds = rows.filter(r => Number(r.parent_id) === 0).map(r => r.id)
+      if (parentIds.length > 0) {
+        const ph = parentIds.map(() => '?').join(',')
+        await db.execute(
+          `UPDATE categories SET is_enabled = 0 WHERE parent_id IN (${ph}) AND openid = ? AND is_deleted = 0`,
+          [...parentIds, openid]
+        )
+      }
+    }
   }
 
   /**
