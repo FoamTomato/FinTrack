@@ -37,6 +37,8 @@ function createBillReviewPage(config) {
       this.setData({ taskId });
       this._checkImportedStatus();
       this._startPolling();
+      // 立即查一次：从时间线点进来的任务通常已解析完成，直接出结果，避免先闪 2s「AI 解析中」
+      this._poll();
     },
 
     onShow() {
@@ -162,8 +164,8 @@ function createBillReviewPage(config) {
       Loading.show('记账中...');
 
       try {
-        const payload = checkedItems.map(({ type, amount, category, category_id, date, time, note, refunded, crop_url }) => ({
-          type, amount, category, category_id, date, time: time || '', note, refunded: !!refunded, crop_url: crop_url || ''
+        const payload = checkedItems.map(({ _idx, type, amount, category, category_id, date, time, note, refunded, crop_url }) => ({
+          _idx, type, amount, category, category_id, date, time: time || '', note, refunded: !!refunded, crop_url: crop_url || ''
         }));
         const res = await API.batchCreateTransaction(payload, this.data.taskId, taskType);
         Loading.hide();

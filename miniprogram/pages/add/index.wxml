@@ -7,7 +7,7 @@
   </view>
 
   <!-- 时间线 -->
-  <scroll-view wx:else scroll-y class="timeline" enhanced show-scrollbar="{{false}}">
+  <scroll-view wx:else scroll-y class="timeline" enhanced show-scrollbar="{{false}}" bindscrolltolower="onReachBottom" lower-threshold="120">
     <block wx:for="{{groups}}" wx:key="ymd" wx:for-item="group">
       <view class="day-sep"><text>{{group.label}}</text></view>
 
@@ -59,9 +59,12 @@
               <text class="txt">{{card.inputText || '（无文字）'}}</text>
             </view>
             <view wx:if="{{card.miniItems.length}}" class="mini-list">
-              <view wx:for="{{card.miniItems}}" wx:key="index" wx:for-item="mi" class="mini-row">
+              <view wx:for="{{card.miniItems}}" wx:key="index" wx:for-item="mi" class="mini-row {{mi.skipReason ? 'skipped' : ''}}">
                 <text class="dot"></text>
                 <text class="mc">{{mi.category}}</text>
+                <text wx:if="{{mi.skipReason === 'refunded'}}" class="mi-tag refund">已退款</text>
+                <text wx:elif="{{mi.skipReason === 'duplicate'}}" class="mi-tag dup">已存在</text>
+                <text wx:elif="{{mi.imported}}" class="mi-tag ok">已记✓</text>
                 <text class="ma">{{mi.type === 1 ? '+' : '-'}}{{mi.amount}}</text>
               </view>
             </view>
@@ -85,13 +88,14 @@
             </view>
             <view class="card-foot">
               <text class="pill {{card.pill.key}}">{{card.pill.text}}</text>
-              <text class="sum">{{card.total}} 张</text>
+              <text class="sum"><text wx:if="{{card.recognizedItems}}">识别 <text class="b">{{card.recognizedItems}}</text> 笔 · </text>{{card.total}} 张</text>
             </view>
           </view>
         </view>
       </view>
     </block>
 
+    <view wx:if="{{!empty}}" class="tl-more">{{hasMore ? '上拉加载更多' : '没有更多了'}}</view>
     <view class="tl-bottom-pad"></view>
   </scroll-view>
 
@@ -107,6 +111,7 @@
         id="manualForm"
         submitText="保存记录"
         hint=""
+        adjust-position="{{false}}"
         bind:save="onManualSave"
       />
     </view>

@@ -79,7 +79,8 @@ function taskPill(task) {
   }
   // completed
   if (task.imported) {
-    return { key: 'done', text: `已记账 ${task.itemCount != null ? task.itemCount + ' 笔' : ''}`.trim() };
+    const n = task.importedCount != null ? task.importedCount : task.itemCount;
+    return { key: 'done', text: `已记账 ${n != null ? n + ' 笔' : ''}`.trim() };
   }
   return { key: 'wait', text: '待核对 · 点开导入' };
 }
@@ -91,9 +92,9 @@ function taskPill(task) {
  * @param {Array}  p.voiceTasks    getVoiceHistory().data
  * @param {Array}  p.scanTasks     getScanHistory().data
  * @param {Object} p.scanBatchMap  本地 storage：{ [taskId]: batchId }
- * @returns {Array} 分组数组：[{ label, ymd, items: [card...] }]
+ * @returns {Array} 扁平卡片数组（已按时间倒序）；再经 groupByDay 分组渲染
  */
-function buildTimeline({ transactions = [], voiceTasks = [], scanTasks = [], scanBatchMap = {} } = {}) {
+function buildCards({ transactions = [], voiceTasks = [], scanTasks = [], scanBatchMap = {} } = {}) {
   const cards = [];
 
   // 1) 手动交易 —— 仅 source==='manual'（语音/识图来源的交易由 task 卡承载，避免重复）
@@ -132,7 +133,10 @@ function buildTimeline({ transactions = [], voiceTasks = [], scanTasks = [], sca
         // 解析结果的 suggested_category 形如「父 > 子 (id:N)」，去掉 (id:N) 仅留分类名
         category: String(it.suggested_category || it.category || '未分类').replace(/\s*\(id:\d+\)\s*$/, ''),
         type: Number(it.type) === 1 ? 1 : 2,
-        amount: parseFloat(it.amount || 0).toFixed(2)
+        amount: parseFloat(it.amount || 0).toFixed(2),
+        // 入账后逐条标记：已记 / 已存在 / 已退款；未导入则三者皆空
+        imported: it.imported === true,
+        skipReason: it.skip_reason || ''
       })),
       pill: taskPill(task)
     });
@@ -155,7 +159,9 @@ function buildTimeline({ transactions = [], voiceTasks = [], scanTasks = [], sca
         doneCount: 0,
         importedCount: 0,
         processingCount: 0,
-        failedCount: 0
+        failedCount: 0,
+        recognizedItems: 0,   // 批次内识别出的总条数
+        importedItems: 0      // 批次内实际入账的总条数
       };
     }
     const b = batches[batchId];
@@ -168,10 +174,15 @@ function buildTimeline({ transactions = [], voiceTasks = [], scanTasks = [], sca
     if (task.imported) b.importedCount += 1;
     if (task.status === 'pending' || task.status === 'processing') b.processingCount += 1;
     if (task.status === 'failed') b.failedCount += 1;
+    if (task.status === 'completed') {
+      b.recognizedItems += task.itemCount || 0;
+      b.importedItems += task.importedCount || 0;
+    }
     b.photos.push({
       taskId: task.id,
       thumb: resolveUpload(task.imageUrl),
-      itemCount: task.status === 'completed' ? task.itemCount : null,
+      // 已入账显示实际记账条数，否则显示识别条数
+      itemCount: task.status === 'completed' ? (task.imported ? task.importedCount : task.itemCount) : null,
       recognized: task.status === 'completed',
       processing: task.status === 'pending' || task.status === 'processing',
       failed: task.status === 'failed'
@@ -190,7 +201,7 @@ function buildTimeline({ transactions = [], voiceTasks = [], scanTasks = [], sca
     } else if (b.failedCount === b.total) {
       b.pill = { key: 'fail', text: '识别失败 · 重试' };
     } else if (b.importedCount > 0) {
-      b.pill = { key: 'done', text: `已记账 ${b.importedCount}/${b.total} 张` };
+      b.pill = { key: 'done', text: `已记账 ${b.importedItems} 笔 · ${b.importedCount}/${b.total} 张` };
     } else {
       b.pill = { key: 'wait', text: '待核对 · 点开导入' };
     }
@@ -199,8 +210,13 @@ function buildTimeline({ transactions = [], voiceTasks = [], scanTasks = [], sca
 
   // 4) 全局按时间倒序
   cards.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  return cards;
+}
 
-  // 5) 按天分组
+/**
+ * 把扁平卡片数组按天分组（今天/昨天/M月D日）。用于分页窗口后再分组渲染。
+ */
+function groupByDay(cards = []) {
   const now = new Date();
   const todayYmd = `${now.getFullYear()}-${('0' + (now.getMonth() + 1)).slice(-2)}-${('0' + now.getDate()).slice(-2)}`;
   const yesterdayYmd = ymdOffset(todayYmd, -1);
@@ -217,4 +233,9 @@ function buildTimeline({ transactions = [], voiceTasks = [], scanTasks = [], sca
   return groups;
 }
 
-module.exports = { buildTimeline, parseTime };
+// 兼容旧用法：直接产出分组（= 扁平构建 + 分组）
+function buildTimeline(input) {
+  return groupByDay(buildCards(input));
+}
+
+module.exports = { buildTimeline, buildCards, groupByDay, parseTime };

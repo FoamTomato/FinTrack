@@ -126,20 +126,23 @@ class ScanService {
        FROM scan_tasks WHERE openid = ? ORDER BY created_at DESC LIMIT 50`,
       [openid]
     )
-    return rows.map(r => ({
-      id: r.id,
-      status: r.status,
-      imported: !!r.imported,
-      imageUrl: r.image_url || '',
-      createdAt: r.created_at,
-      itemCount: (() => {
-        if (r.status !== 'completed' || !r.result) return null
-        try {
-          const p = typeof r.result === 'string' ? JSON.parse(r.result) : r.result
-          return Array.isArray(p) ? p.length : null
-        } catch (_) { return null }
-      })()
-    }))
+    return rows.map(r => {
+      let parsed = null
+      if (r.status === 'completed' && r.result) {
+        try { parsed = typeof r.result === 'string' ? JSON.parse(r.result) : r.result } catch (_) {}
+      }
+      const items = Array.isArray(parsed) ? parsed : null
+      return {
+        id: r.id,
+        status: r.status,
+        imported: !!r.imported,
+        imageUrl: r.image_url || '',
+        createdAt: r.created_at,
+        itemCount: items ? items.length : null,
+        // 实际入账条数（result 内 imported===true 的数量）
+        importedCount: items ? items.filter(it => it.imported === true).length : null
+      }
+    })
   }
 
   // 逐笔按 bbox（原图归一化竖向区间）从原图裁出小图，写 item.crop_url；失败/无 bbox 静默跳过

@@ -22,6 +22,7 @@ page {
   box-sizing: border-box;
   padding: 24rpx 30rpx 0;
 }
+.tl-more { text-align: center; font-size: 24rpx; color: #bbb; padding: 24rpx 0 8rpx; }
 .tl-bottom-pad { height: calc(160rpx + env(safe-area-inset-bottom)); }
 
 .day-sep {
@@ -97,6 +98,14 @@ page {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .mini-row .ma { font-family: 'DIN Alternate'; font-weight: 600; font-size: 28rpx; color: #333; }
+/* 逐条入账标记 */
+.mini-row .mi-tag { font-size: 20rpx; padding: 2rpx 10rpx; border-radius: 8rpx; flex-shrink: 0; line-height: 1.6; }
+.mini-row .mi-tag.ok { color: #07c160; background: #e7f7ee; }
+.mini-row .mi-tag.dup { color: #999; background: #f2f3f5; }
+.mini-row .mi-tag.refund { color: #fa8c16; background: #fff7e6; }
+/* 未入账(去重/退款)条目淡化 */
+.mini-row.skipped .mc, .mini-row.skipped .ma { color: #bbb; }
+.mini-row.skipped .dot { background: #d9d9d9; }
 
 .card-foot {
   display: flex; align-items: center; justify-content: space-between;

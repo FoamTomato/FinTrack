@@ -1,7 +1,11 @@
 <view class="container">
   <form bindsubmit="onSubmit">
+    <!-- 类型只读（编辑已有记录：类型不可改） -->
+    <view wx:if="{{lockType}}" class="type-tab-bar">
+      <view class="tab-item active {{transactionType == 1 ? 'income' : 'expense'}}">{{transactionType == 1 ? '收入' : '支出'}}</view>
+    </view>
     <!-- 类型切换（手动记账页附带 🎤 语音 / 📷 拍照导入入口） -->
-    <view wx:if="{{showScanEntry || showVoiceEntry}}" class="top-bar-row">
+    <view wx:elif="{{showScanEntry || showVoiceEntry}}" class="top-bar-row">
       <view class="type-tab-bar">
         <view class="tab-item {{transactionType == 2 ? 'active expense' : ''}}" bindtap="onChangeTransactionType" data-type="2">支出</view>
         <view class="tab-item {{transactionType == 1 ? 'active income' : ''}}" bindtap="onChangeTransactionType" data-type="1">收入</view>
@@ -18,7 +22,7 @@
     <view class="fui-card">
       <view class="input-row main-amount">
         <text class="currency">¥</text>
-        <input name="amount" type="digit" placeholder="0.00" value="{{amount}}" placeholder-class="placeholder-amount" focus="{{true}}" bindinput="onAmountInput" />
+        <input name="amount" type="digit" placeholder="0.00" value="{{amount}}" placeholder-class="placeholder-amount" focus="{{true}}" adjust-position="{{adjustPosition}}" bindinput="onAmountInput" />
       </view>
     </view>
 

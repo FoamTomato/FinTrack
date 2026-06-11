@@ -1,5 +1,1 @@
-@import "../add/index.wxss";
-
-.picker-value.disabled {
-  color: #999;
-}
+/* 编辑页表单已复用 bill-edit-form 组件，样式由组件内部提供，无需页面级样式 */

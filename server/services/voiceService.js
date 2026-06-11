@@ -67,11 +67,15 @@ class VoiceService {
         inputText: r.input_text || '',
         createdAt: r.created_at,
         itemCount: items ? items.length : null,
+        // 实际入账条数（result 内 imported===true 的数量）
+        importedCount: items ? items.filter(it => it.imported === true).length : null,
         // 时间线卡片 mini 列表用（精简字段，最多前 4 条由前端截）
         items: items ? items.map(it => ({
           type: Number(it.type) === 1 ? 1 : 2,
           amount: it.amount,
-          suggested_category: it.suggested_category || ''
+          category: it.category || '',
+          imported: it.imported === true,
+          skip_reason: it.skip_reason || ''
         })) : []
       }
     })

@@ -219,10 +219,13 @@ class TransactionController {
   async update(req, res, next) {
     try {
       const openid = req.headers['x-wx-openid']
-      const { id, amount, date, note, category, category_id } = req.body
+      const { id, amount, date, note, category, category_id, type } = req.body
 
       if (!id) {
         throw { type: 'VALIDATION_ERROR', message: '账单 ID 不能为空' }
+      }
+      if (type !== undefined && ![1, 2].includes(Number(type))) {
+        throw { type: 'VALIDATION_ERROR', message: 'type 必须为 1(收入) 或 2(支出)' }
       }
       if (amount === undefined || amount === null || isNaN(Number(amount))) {
         throw { type: 'VALIDATION_ERROR', message: '金额格式错误' }
@@ -245,13 +248,43 @@ class TransactionController {
         date,
         note,
         category,
-        category_id
+        category_id,
+        type: type !== undefined ? Number(type) : undefined
       })
 
       success(res, null, '更新成功')
     } catch (err) {
       next(err)
     }
+  }
+
+  /**
+   * 把本次导入的逐条结果回写进 task.result：
+   *   created  → item.imported = true
+   *   duplicate/refunded → item.imported = false + item.skip_reason
+   * 仅更新本次处理到的下标；已为 true 的不被覆盖（支持分多次导入累积）。
+   */
+  async _writebackTaskResult(db, taskTable, taskId, openid, outcomeByIdx) {
+    try {
+      if (!outcomeByIdx || !Object.keys(outcomeByIdx).length) return
+      const [rows] = await db.execute(`SELECT result FROM ${taskTable} WHERE id = ? AND openid = ?`, [taskId, openid])
+      if (!rows.length || !rows[0].result) return
+      const items = typeof rows[0].result === 'string' ? JSON.parse(rows[0].result) : rows[0].result
+      if (!Array.isArray(items)) return
+      for (const [idx, outcome] of Object.entries(outcomeByIdx)) {
+        const i = Number(idx)
+        if (!items[i]) continue
+        if (outcome === 'created') {
+          items[i].imported = true
+          delete items[i].skip_reason
+        } else if (items[i].imported !== true) {
+          // 已记账过的不要被后续重复导入的 skip 覆盖
+          items[i].imported = false
+          items[i].skip_reason = outcome
+        }
+      }
+      await db.execute(`UPDATE ${taskTable} SET result = ? WHERE id = ? AND openid = ?`, [JSON.stringify(items), taskId, openid])
+    } catch (_) { /* 回写失败不影响主流程 */ }
   }
 
   /**
@@ -310,12 +343,18 @@ class TransactionController {
       let skipped = 0           // 去重跳过条数（已存在 / 同批重复）
       let refundedSkipped = 0   // 退款条目跳过条数（即使前端误传也不入账）
       const seenHashes = new Set()
+      // 按 _idx 记录每条结果，用于回写 task.result 的逐条 imported/skip_reason 标记
+      const outcomeByIdx = {}   // { [idx]: 'created' | 'duplicate' | 'refunded' }
+      const markOutcome = (item, outcome) => {
+        if (Number.isInteger(item._idx)) outcomeByIdx[item._idx] = outcome
+      }
       for (const item of items) {
         const { type, amount, category, category_id, date, note } = item
 
         // 退款条目兜底：一律不入账（前端默认已不勾选，这里防误传）
         if (item.refunded === true || item.refunded === 'true') {
           refundedSkipped++
+          markOutcome(item, 'refunded')
           continue
         }
 
@@ -342,6 +381,7 @@ class TransactionController {
         const hash = transactionService._dedupHash(openid, date, Number(amount), Number(type), note || '')
         if (seenHashes.has(hash) || await transactionService.existsByDedup(openid, hash)) {
           skipped++
+          markOutcome(item, 'duplicate')
           continue
         }
         seenHashes.add(hash)
@@ -361,11 +401,14 @@ class TransactionController {
           sourceTaskId
         })
         ids.push(result.id)
+        markOutcome(item, 'created')
       }
 
       if (importTaskId) {
         const db = require('../config/db')
         db.execute(`UPDATE ${taskTable} SET imported = 1 WHERE id = ? AND openid = ?`, [importTaskId, openid]).catch(() => {})
+        // 逐条回写 result：imported=true(已入账) / false+skip_reason(去重·退款)，供时间线标记哪几条记了
+        await this._writebackTaskResult(db, taskTable, importTaskId, openid, outcomeByIdx)
       }
 
       success(res, { ids, count: ids.length, skipped, refundedSkipped }, '批量记账成功')

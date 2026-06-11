@@ -3,18 +3,21 @@ const API = require('../../utils/api');
 const Loading = require('../../utils/loading');
 const Logger = require('../../utils/logger');
 const log = Logger.module('add');
-const { buildTimeline } = require('../../utils/timeline');
+const { buildCards, groupByDay } = require('../../utils/timeline');
 const { loadBatchMap } = require('../../utils/scanPicker');
 const scanPicker = require('../../utils/scanPicker');
 
 // 端上录音（语音 sheet 用）
 const recorder = wx.getRecorderManager();
 
+const PAGE_SIZE = 20;   // 时间线每次加载/展开的卡片数
+
 Page({
   data: {
-    groups: [],            // 时间线分组 [{label,ymd,items}]
+    groups: [],            // 时间线分组 [{label,ymd,items}]（当前已展示窗口）
     loading: true,
     empty: false,
+    hasMore: false,        // 是否还有未展示的卡片（触底加载）
 
     // 三种 sheet 互斥：'' | 'manual' | 'voice' | 'scan'，保证同时只有一个出来
     activeSheet: '',
@@ -50,6 +53,21 @@ Page({
   onUnload() { this._stopPolling(); },
   onPullDownRefresh() { this.fetchTimeline().then(() => wx.stopPullDownRefresh()); },
 
+  // 触底：展开下一页（客户端窗口，无需再请求；数据已按当月+近 50 任务拉全）
+  onReachBottom() {
+    if (!this.data.hasMore) return;
+    this._limit = (this._limit || PAGE_SIZE) + PAGE_SIZE;
+    this._renderWindow();
+  },
+
+  // 按当前窗口 _limit 切片 + 分组渲染
+  _renderWindow() {
+    const all = this._allCards || [];
+    const limit = this._limit || PAGE_SIZE;
+    const groups = groupByDay(all.slice(0, limit));
+    this.setData({ groups, empty: all.length === 0, hasMore: all.length > limit });
+  },
+
   // ============ 数据：拉取并构建时间线 ============
   async fetchTimeline() {
     if (!app.globalData || app.globalData.isAuthorized !== true) {
@@ -76,12 +94,13 @@ Page({
       const voiceTasks = (voiceRes && voiceRes.code === 0 && voiceRes.data) || [];
       const scanTasks = (scanRes && scanRes.code === 0 && scanRes.data) || [];
 
-      const groups = buildTimeline({
+      this._allCards = buildCards({
         transactions, voiceTasks, scanTasks,
         scanBatchMap: loadBatchMap()
       });
-
-      this.setData({ groups, empty: groups.length === 0 });
+      // 保留当前已展开的窗口大小（刷新/轮询不收起用户已加载的内容），首次为 PAGE_SIZE
+      if (!this._limit) this._limit = PAGE_SIZE;
+      this._renderWindow();
 
       // 有进行中的 task 则轮询刷新
       const hasPending =

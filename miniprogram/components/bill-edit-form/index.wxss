@@ -17,9 +17,10 @@
   margin: 8rpx auto 32rpx;
 }
 
-/* 类型切换栏 */
+/* 类型切换栏：默认与卡片同宽(92%)居中、上下留白；在 top-bar-row 内则改为 flex 撑满 */
 .type-tab-bar {
-  flex: 1;
+  width: 92%;
+  margin: 8rpx auto 32rpx;
   height: 88rpx;
   background-color: #f1f3f5;
   border-radius: 44rpx;
@@ -27,7 +28,7 @@
   padding: 8rpx;
   box-sizing: border-box;
 }
-.type-tab-bar:only-child { width: 92%; margin: 8rpx auto 32rpx; }
+.top-bar-row .type-tab-bar { flex: 1; width: auto; margin: 0; }
 
 .tab-item {
   flex: 1;

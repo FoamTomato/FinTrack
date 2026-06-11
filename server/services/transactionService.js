@@ -97,14 +97,18 @@ class TransactionService {
       throw { type: 'VALIDATION_ERROR', message: '记录不存在或无权修改' }
     }
 
-    // 校验新分类归属与类型匹配（避免支出账单挂在收入分类下）
+    // 可改收支类型：未传则维持原 type
+    const effectiveType = (data.type === 1 || data.type === 2) ? data.type : rows[0].type
+
+    // 校验新分类归属与类型匹配（按改后的 type 校验，避免支出账单挂在收入分类下）
     if (data.category_id) {
-      await this.validateCategory(data.category_id, openid, rows[0].type)
+      await this.validateCategory(data.category_id, openid, effectiveType)
     }
 
     await db.execute(
-      'UPDATE transactions SET amount = ?, date = ?, note = ?, category = ?, category_id = ? WHERE id = ?',
+      'UPDATE transactions SET type = ?, amount = ?, date = ?, note = ?, category = ?, category_id = ? WHERE id = ?',
       [
+        effectiveType,
         data.amount,
         data.date,
         data.note || '',

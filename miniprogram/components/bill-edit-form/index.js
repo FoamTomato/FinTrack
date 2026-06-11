@@ -18,7 +18,11 @@ Component({
     // 是否在类型切换栏旁显示「🎤 语音记账」入口（手动记账页使用）
     showVoiceEntry: { type: Boolean, value: false },
     // 是否显示时间选择器（识图/语音复核编辑场景开启，手动记账不显示）
-    showTime: { type: Boolean, value: false }
+    showTime: { type: Boolean, value: false },
+    // 金额自动聚焦时是否允许键盘上推页面：整页编辑=true；底部 sheet 传 false，避免键盘把 sheet 顶错位
+    adjustPosition: { type: Boolean, value: true },
+    // 锁定收支类型（编辑已有记录：后端类型不可改，避免切换后分类类型不匹配）
+    lockType: { type: Boolean, value: false }
   },
 
   data: {
