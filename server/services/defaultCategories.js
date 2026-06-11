@@ -17,35 +17,27 @@ const C = {
   transport: '0ea5e9',  // 天蓝
   travel: '06b6d4',     // 青
   daily: '64748b',      // 石板
-  clothing: 'a855f7',   // 紫
-  bag: '8b5cf6',        // 紫罗兰
-  beauty: 'ec4899',     // 粉
   home: '84cc16',       // 黄绿
   fun: 'ef4444',        // 红
   sports: '22c55e',     // 绿
   hobby: 'f59e0b',      // 琥珀
-  digital: '3b82f6',    // 蓝
   cloud: '6366f1',      // 靛
   edu: '14b8a6',        // 蓝绿
   health: 'dc2626',     // 砖红
-  salon: 'd946ef',      // 品红
+  other: '94a3b8',      // 中灰（原美容美发+其他支出合并）
   pet: 'eab308',        // 金
   social: 'f43f5e',     // 玫瑰
   work: '475569',       // 灰
   baby: 'fb7185',       // 浅玫瑰
   finance: '0f766e',    // 深青
-  charity: 'be123c',    // 深玫红
   growth: '7c3aed',     // 深紫
   occasion: 'db2777',   // 桃红
-  other: '94a3b8',      // 中灰
   // 收入色调
   salary: '16a34a',     // 深绿
   invest: '0891b2',     // 海蓝
-  asset: '0d9488',      // 深蓝绿
   side: '0284c7',       // 海洋蓝
   business: '059669',   // 翡翠
   windfall: 'f59e0b',   // 琥珀
-  family: 'f472b6',     // 粉红
   loan: '6b7280',       // 中灰
   govt: '1d4ed8',       // 海军蓝
   income: '10b981'      // 翠绿
@@ -61,92 +53,43 @@ module.exports = [
       { name: '晚餐', icon: ph('fork-knife', C.food) },
       { name: '夜宵', icon: ph('moon-stars', C.food) },
       { name: '下午茶', icon: ph('cake', C.food) },
-      { name: '奶茶饮品', icon: ph('coffee', C.food) },
       { name: '咖啡', icon: ph('coffee-bean', C.food) },
-      { name: '果汁', icon: ph('martini', C.food) },
-      { name: '矿泉水', icon: ph('drop', C.food) },
-      { name: '酒水啤酒', icon: ph('beer-bottle', C.food) },
-      { name: '零食薯片', icon: ph('popcorn', C.food) },
-      { name: '坚果炒货', icon: ph('seal', C.food) },
-      { name: '糖果巧克力', icon: ph('cookie', C.food) },
-      { name: '水果', icon: ph('orange', C.food) },
-      { name: '蛋糕甜点', icon: ph('cake', C.food) },
-      { name: '面包烘焙', icon: ph('bread', C.food) },
-      { name: '冰淇淋', icon: ph('ice-cream', C.food) },
-      { name: '外卖', icon: ph('moped', C.food) },
-      { name: '聚餐请客', icon: ph('users-three', C.food) },
-      { name: '食材生鲜', icon: ph('shopping-bag-open', C.food) },
-      { name: '米面粮油', icon: ph('grains', C.food) },
-      { name: '调味品', icon: ph('flask', C.food) },
-      { name: '速食方便面', icon: ph('bowl-steam', C.food) },
-      { name: '火锅烧烤', icon: ph('cooking-pot', C.food) },
-      { name: '日料', icon: ph('fish', C.food) },
-      { name: '西餐', icon: ph('knife', C.food) },
-      { name: '快餐', icon: ph('hamburger', C.food) }
+      { name: '超市购物', icon: ph('storefront', C.food) },
+      { name: '日常买菜', icon: ph('shopping-bag-open', C.food) }
     ]
   },
   {
-    name: '交通出行', type: 2, icon: ph('car', C.transport),
+    name: '日常出行', type: 2, icon: ph('car', C.transport),
     children: [
       { name: '公交', icon: ph('bus', C.transport) },
       { name: '地铁', icon: ph('train', C.transport) },
-      { name: '有轨电车', icon: ph('tram', C.transport) },
-      { name: '出租车', icon: ph('taxi', C.transport) },
       { name: '网约车', icon: ph('car-profile', C.transport) },
-      { name: '顺风车', icon: ph('car-simple', C.transport) },
-      { name: '代驾', icon: ph('steering-wheel', C.transport) },
       { name: '共享单车', icon: ph('bicycle', C.transport) },
-      { name: '共享电单车', icon: ph('scooter', C.transport) },
       { name: '电动车充电', icon: ph('plug-charging', C.transport) },
-      { name: '电瓶车维修', icon: ph('wrench', C.transport) },
-      { name: '汽车加油', icon: ph('gas-pump', C.transport) },
-      { name: '汽车保养', icon: ph('wrench', C.transport) },
-      { name: '汽车维修', icon: ph('toolbox', C.transport) },
-      { name: '洗车', icon: ph('drop-half', C.transport) },
-      { name: '汽车美容', icon: ph('sparkle', C.transport) },
       { name: '停车费', icon: ph('car', C.transport) },
-      { name: '过路过桥', icon: ph('road-horizon', C.transport) },
-      { name: 'ETC充值', icon: ph('credit-card', C.transport) },
-      { name: '违章罚款', icon: ph('warning', C.transport) },
-      { name: '车检年审', icon: ph('clipboard-text', C.transport) },
-      { name: '汽车保险', icon: ph('shield-check', C.transport) },
-      { name: '车贷', icon: ph('bank', C.transport) },
-      { name: '汽车装饰', icon: ph('paint-brush', C.transport) },
-      { name: '轮胎更换', icon: ph('circle-dashed', C.transport) }
+      { name: '高铁费', icon: ph('train-simple', C.transport) }
     ]
   },
   {
     name: '旅游出行', type: 2, icon: ph('airplane-tilt', C.travel),
     children: [
       { name: '飞机票', icon: ph('airplane', C.travel) },
-      { name: '高铁动车', icon: ph('train-simple', C.travel) },
-      { name: '普通火车票', icon: ph('train', C.travel) },
-      { name: '长途汽车', icon: ph('bus', C.travel) },
-      { name: '轮船游轮', icon: ph('boat', C.travel) },
-      { name: '邮轮', icon: ph('sailboat', C.travel) },
-      { name: '酒店', icon: ph('buildings', C.travel) },
-      { name: '民宿', icon: ph('house-line', C.travel) },
-      { name: '青旅', icon: ph('bed', C.travel) },
-      { name: '景点门票', icon: ph('ticket', C.travel) },
-      { name: '主题乐园', icon: ph('confetti', C.travel) },
-      { name: '旅行团', icon: ph('users-three', C.travel) },
-      { name: '自由行', icon: ph('map-trifold', C.travel) },
-      { name: '导游费', icon: ph('user-focus', C.travel) },
-      { name: '签证', icon: ph('identification-card', C.travel) },
-      { name: '护照证件', icon: ph('identification-badge', C.travel) },
-      { name: '行李托运', icon: ph('suitcase-rolling', C.travel) },
+      { name: '高铁火车票', icon: ph('train-simple', C.travel) },
+      { name: '交通费用', icon: ph('bus', C.travel) },
+      { name: '轮船费用', icon: ph('boat', C.travel) },
+      { name: '住宿', icon: ph('buildings', C.travel) },
+      { name: '门票', icon: ph('ticket', C.travel) },
       { name: '租车', icon: ph('car-profile', C.travel) },
-      { name: '当地体验', icon: ph('mask-happy', C.travel) },
-      { name: '温泉度假', icon: ph('waves', C.travel) },
-      { name: '滑雪场', icon: ph('snowflake', C.travel) },
-      { name: '潜水', icon: ph('mask-sad', C.travel) },
-      { name: '跳伞', icon: ph('parachute', C.travel) },
       { name: '伴手礼', icon: ph('gift', C.travel) },
-      { name: '旅行保险', icon: ph('shield-star', C.travel) }
+      { name: '购物', icon: ph('shopping-cart', C.travel) },
+      { name: '早中晚餐', icon: ph('fork-knife', C.travel) },
+      { name: '饮料', icon: ph('coffee', C.travel) },
+      { name: '加油', icon: ph('gas-pump', C.travel) },
+      { name: '其他费用', icon: ph('dots-three-circle', C.travel) }
     ]
   },
   {
-    name: '日用购物', type: 2, icon: ph('shopping-cart', C.daily),
+    name: '日常购物', type: 2, icon: ph('shopping-cart', C.daily),
     children: [
       { name: '日用百货', icon: ph('shopping-bag', C.daily) },
       { name: '纸巾纸品', icon: ph('toilet-paper', C.daily) },
@@ -158,58 +101,11 @@ module.exports = [
       { name: '电池', icon: ph('battery-charging', C.daily) },
       { name: '灯泡灯具', icon: ph('lightbulb', C.daily) },
       { name: '绿植花卉', icon: ph('plant', C.daily) },
-      { name: '季节用品', icon: ph('sun', C.daily) }
-    ]
-  },
-  {
-    name: '服饰鞋帽', type: 2, icon: ph('t-shirt', C.clothing),
-    children: [
-      { name: '上衣T恤', icon: ph('t-shirt', C.clothing) },
-      { name: '裤子', icon: ph('pants', C.clothing) },
-      { name: '外套大衣', icon: ph('coat-hanger', C.clothing) },
-      { name: '内衣袜子', icon: ph('shirt-folded', C.clothing) },
-      { name: '运动服', icon: ph('basketball', C.clothing) },
-      { name: '礼服', icon: ph('dress', C.clothing) },
-      { name: '连衣裙', icon: ph('dress', C.clothing) },
-      { name: '鞋子', icon: ph('sneaker', C.clothing) },
-      { name: '运动鞋', icon: ph('sneaker-move', C.clothing) },
-      { name: '靴子', icon: ph('boot', C.clothing) },
-      { name: '帽子', icon: ph('baseball-cap', C.clothing) },
-      { name: '围巾手套', icon: ph('hand', C.clothing) },
-      { name: '皮带', icon: ph('belt', C.clothing) },
-      { name: '领带', icon: ph('user', C.clothing) },
-      { name: '首饰珠宝', icon: ph('diamond', C.clothing) },
-      { name: '手表', icon: ph('watch', C.clothing) },
-      { name: '墨镜眼镜', icon: ph('sunglasses', C.clothing) },
-      { name: '定制改衣', icon: ph('needle', C.clothing) },
-      { name: '洗衣干洗', icon: ph('washing-machine', C.clothing) }
-    ]
-  },
-  {
-    name: '箱包配饰', type: 2, icon: ph('handbag', C.bag),
-    children: [
-      { name: '手提包', icon: ph('handbag', C.bag) },
-      { name: '双肩包', icon: ph('backpack', C.bag) },
-      { name: '行李箱', icon: ph('suitcase', C.bag) },
-      { name: '钱包', icon: ph('wallet', C.bag) },
-      { name: '卡包', icon: ph('credit-card', C.bag) },
-      { name: '配饰小物', icon: ph('gift', C.bag) }
-    ]
-  },
-  {
-    name: '美妆个护', type: 2, icon: ph('pen', C.beauty),
-    children: [
-      { name: '护肤品', icon: ph('drop-half', C.beauty) },
-      { name: '面膜', icon: ph('mask-happy', C.beauty) },
-      { name: '彩妆口红', icon: ph('pen-nib', C.beauty) },
-      { name: '香水', icon: ph('flower', C.beauty) },
-      { name: '洗发护发', icon: ph('shower', C.beauty) },
-      { name: '沐浴身体护理', icon: ph('bathtub', C.beauty) },
-      { name: '口腔护理', icon: ph('tooth', C.beauty) },
-      { name: '剃须', icon: ph('knife', C.beauty) },
-      { name: '卫生用品', icon: ph('first-aid', C.beauty) },
-      { name: '隐形眼镜', icon: ph('eye', C.beauty) },
-      { name: '美甲工具', icon: ph('hand-pointing', C.beauty) }
+      { name: '季节用品', icon: ph('sun', C.daily) },
+      { name: '衣服', icon: ph('t-shirt', C.daily) },
+      { name: '化妆品', icon: ph('pen-nib', C.daily) },
+      { name: '盲盒', icon: ph('package', C.daily) },
+      { name: '其他', icon: ph('dots-three-circle', C.daily) }
     ]
   },
   {
@@ -219,25 +115,12 @@ module.exports = [
       { name: '房贷月供', icon: ph('bank', C.home) },
       { name: '首付', icon: ph('coins', C.home) },
       { name: '物业费', icon: ph('buildings', C.home) },
-      { name: '水费', icon: ph('drop', C.home) },
-      { name: '电费', icon: ph('lightning', C.home) },
-      { name: '燃气费', icon: ph('flame', C.home) },
-      { name: '暖气费', icon: ph('thermometer-hot', C.home) },
-      { name: '宽带网费', icon: ph('wifi-high', C.home) },
-      { name: '有线电视', icon: ph('television', C.home) },
-      { name: '垃圾处理费', icon: ph('trash', C.home) },
-      { name: '家政保洁', icon: ph('broom', C.home) },
-      { name: '维修服务', icon: ph('wrench', C.home) },
+      { name: '水电燃气费', icon: ph('lightning', C.home) },
+      { name: '网络费', icon: ph('wifi-high', C.home) },
       { name: '搬家费', icon: ph('truck', C.home) },
-      { name: '装修', icon: ph('hammer', C.home) },
-      { name: '家具', icon: ph('armchair', C.home) },
-      { name: '家电', icon: ph('plug', C.home) },
-      { name: '床上用品', icon: ph('bed', C.home) },
-      { name: '厨具餐具', icon: ph('cooking-pot', C.home) },
-      { name: '家纺布艺', icon: ph('needle', C.home) },
-      { name: '家居装饰', icon: ph('frame-corners', C.home) },
-      { name: '绿植花艺', icon: ph('plant', C.home) },
-      { name: '智能家居', icon: ph('house-simple', C.home) }
+      { name: '装修费', icon: ph('hammer', C.home) },
+      { name: '家政保洁费', icon: ph('broom', C.home) },
+      { name: '其他费用', icon: ph('dots-three-circle', C.home) }
     ]
   },
   {
@@ -359,34 +242,6 @@ module.exports = [
     ]
   },
   {
-    name: '数码科技', type: 2, icon: ph('desktop', C.digital),
-    children: [
-      { name: '电脑', icon: ph('desktop', C.digital) },
-      { name: '笔记本', icon: ph('laptop', C.digital) },
-      { name: '台式机', icon: ph('desktop-tower', C.digital) },
-      { name: '显示器', icon: ph('monitor', C.digital) },
-      { name: '键盘鼠标', icon: ph('keyboard', C.digital) },
-      { name: '电脑配件', icon: ph('plugs-connected', C.digital) },
-      { name: '显卡', icon: ph('graphics-card', C.digital) },
-      { name: '内存硬盘', icon: ph('hard-drive', C.digital) },
-      { name: '手机', icon: ph('device-mobile', C.digital) },
-      { name: '平板', icon: ph('device-tablet', C.digital) },
-      { name: '耳机', icon: ph('headphones', C.digital) },
-      { name: '音响', icon: ph('speaker-high', C.digital) },
-      { name: '智能手表', icon: ph('watch', C.digital) },
-      { name: '运动手环', icon: ph('watch', C.digital) },
-      { name: '智能家居设备', icon: ph('house-simple', C.digital) },
-      { name: '相机', icon: ph('camera', C.digital) },
-      { name: '镜头', icon: ph('aperture', C.digital) },
-      { name: '无人机', icon: ph('drone', C.digital) },
-      { name: '投影仪', icon: ph('projector-screen', C.digital) },
-      { name: '智能穿戴', icon: ph('eyeglasses', C.digital) },
-      { name: '移动电源', icon: ph('battery-charging-vertical', C.digital) },
-      { name: '数据线', icon: ph('usb', C.digital) },
-      { name: '转接器', icon: ph('plugs', C.digital) }
-    ]
-  },
-  {
     name: '科技服务', type: 2, icon: ph('cloud', C.cloud),
     children: [
       { name: '服务器', icon: ph('hard-drives', C.cloud) },
@@ -478,21 +333,31 @@ module.exports = [
     ]
   },
   {
-    name: '美容美发', type: 2, icon: ph('scissors', C.salon),
+    name: '其他支出', type: 2, icon: ph('dots-three-circle', C.other),
     children: [
-      { name: '理发', icon: ph('scissors', C.salon) },
-      { name: '烫染发', icon: ph('paint-bucket', C.salon) },
-      { name: '护发', icon: ph('drop', C.salon) },
-      { name: '美甲', icon: ph('hand-pointing', C.salon) },
-      { name: '美睫', icon: ph('eye', C.salon) },
-      { name: '美瞳', icon: ph('eye-closed', C.salon) },
-      { name: '纹绣', icon: ph('pencil', C.salon) },
-      { name: '纹身', icon: ph('pen-nib', C.salon) },
-      { name: 'SPA按摩', icon: ph('hand-heart', C.salon) },
-      { name: '足疗', icon: ph('sneaker', C.salon) },
-      { name: '汗蒸', icon: ph('thermometer-hot', C.salon) },
-      { name: '皮肤管理', icon: ph('sparkle', C.salon) },
-      { name: '瘦身塑形', icon: ph('person-simple', C.salon) }
+      // 原美容美发小类
+      { name: '理发', icon: ph('scissors', C.other) },
+      { name: '烫染发', icon: ph('paint-bucket', C.other) },
+      { name: '护发', icon: ph('drop', C.other) },
+      { name: '美甲', icon: ph('hand-pointing', C.other) },
+      { name: '美睫', icon: ph('eye', C.other) },
+      { name: '美瞳', icon: ph('eye-closed', C.other) },
+      { name: '纹绣', icon: ph('pencil', C.other) },
+      { name: '纹身', icon: ph('pen-nib', C.other) },
+      { name: 'SPA按摩', icon: ph('hand-heart', C.other) },
+      { name: '足疗', icon: ph('sneaker', C.other) },
+      { name: '汗蒸', icon: ph('thermometer-hot', C.other) },
+      { name: '皮肤管理', icon: ph('sparkle', C.other) },
+      { name: '瘦身塑形', icon: ph('person-simple', C.other) },
+      // 原其他支出小类
+      { name: '手续费', icon: ph('arrows-left-right', C.other) },
+      { name: '丢失赔偿', icon: ph('warning-octagon', C.other) },
+      { name: '罚款', icon: ph('warning', C.other) },
+      { name: '押金', icon: ph('coins', C.other) },
+      { name: '抵押金', icon: ph('lock', C.other) },
+      { name: '未分类支出', icon: ph('question', C.other) },
+      { name: '报销垫付', icon: ph('clipboard', C.other) },
+      { name: '借出款项', icon: ph('handshake', C.other) }
     ]
   },
   {
@@ -600,18 +465,6 @@ module.exports = [
     ]
   },
   {
-    name: '公益慈善', type: 2, icon: ph('hand-heart', C.charity),
-    children: [
-      { name: '慈善捐款', icon: ph('heart', C.charity) },
-      { name: '众筹', icon: ph('hands-praying', C.charity) },
-      { name: '互助', icon: ph('handshake', C.charity) },
-      { name: '志愿者支出', icon: ph('hand-waving', C.charity) },
-      { name: '动物救助', icon: ph('paw-print', C.charity) },
-      { name: '环保公益', icon: ph('leaf', C.charity) },
-      { name: '宗教捐赠', icon: ph('flower-lotus', C.charity) }
-    ]
-  },
-  {
     name: '个人提升', type: 2, icon: ph('target', C.growth),
     children: [
       { name: '心理疏导', icon: ph('brain', C.growth) },
@@ -633,19 +486,6 @@ module.exports = [
       { name: '纪念日', icon: ph('heart', C.occasion) },
       { name: '节日庆祝', icon: ph('confetti', C.occasion) },
       { name: '跨年活动', icon: ph('sparkle', C.occasion) }
-    ]
-  },
-  {
-    name: '其他支出', type: 2, icon: ph('dots-three-circle', C.other),
-    children: [
-      { name: '手续费', icon: ph('arrows-left-right', C.other) },
-      { name: '丢失赔偿', icon: ph('warning-octagon', C.other) },
-      { name: '罚款', icon: ph('warning', C.other) },
-      { name: '押金', icon: ph('coins', C.other) },
-      { name: '抵押金', icon: ph('lock', C.other) },
-      { name: '未分类支出', icon: ph('question', C.other) },
-      { name: '报销垫付', icon: ph('clipboard', C.other) },
-      { name: '借出款项', icon: ph('handshake', C.other) }
     ]
   },
 
@@ -690,30 +530,11 @@ module.exports = [
     ]
   },
   {
-    name: '资产收益', type: 1, icon: ph('house-line', C.asset),
-    children: [
-      { name: '房租收入', icon: ph('house', C.asset) },
-      { name: '车位租金', icon: ph('circle-half', C.asset) },
-      { name: '设备租金', icon: ph('wrench', C.asset) },
-      { name: '版权收益', icon: ph('copyright', C.asset) },
-      { name: '专利收益', icon: ph('lightbulb', C.asset) },
-      { name: '版税', icon: ph('books', C.asset) }
-    ]
-  },
-  {
     name: '副业兼职', type: 1, icon: ph('briefcase', C.side),
     children: [
       { name: '兼职工资', icon: ph('money', C.side) },
-      { name: '稿费', icon: ph('pen-nib', C.side) },
-      { name: '翻译稿费', icon: ph('translate', C.side) },
       { name: '佣金提成', icon: ph('chart-bar', C.side) },
-      { name: '咨询费', icon: ph('chat-circle-text', C.side) },
-      { name: '培训授课', icon: ph('chalkboard-teacher', C.side) },
-      { name: '设计接单', icon: ph('palette', C.side) },
-      { name: '外包项目', icon: ph('code', C.side) },
-      { name: '自媒体收入', icon: ph('device-mobile', C.side) },
-      { name: '广告费', icon: ph('megaphone', C.side) },
-      { name: '推广佣金', icon: ph('link', C.side) }
+      { name: '自媒体收入', icon: ph('device-mobile', C.side) }
     ]
   },
   {
@@ -723,8 +544,6 @@ module.exports = [
       { name: '电商销售', icon: ph('shopping-cart', C.business) },
       { name: '二手转卖', icon: ph('recycle', C.business) },
       { name: '闲置回收', icon: ph('package', C.business) },
-      { name: '直播打赏', icon: ph('gift', C.business) },
-      { name: '礼物分成', icon: ph('heart', C.business) },
       { name: '付费内容', icon: ph('lock-key', C.business) },
       { name: '知识付费', icon: ph('books', C.business) },
       { name: '订阅收入', icon: ph('star', C.business) },
@@ -735,26 +554,10 @@ module.exports = [
     name: '偏财所得', type: 1, icon: ph('gift', C.windfall),
     children: [
       { name: '红包', icon: ph('envelope', C.windfall) },
-      { name: '礼金回礼', icon: ph('heart', C.windfall) },
       { name: '中奖', icon: ph('confetti', C.windfall) },
-      { name: '彩票', icon: ph('ticket', C.windfall) },
-      { name: '抽奖', icon: ph('target', C.windfall) },
       { name: '退税', icon: ph('receipt', C.windfall) },
-      { name: '退款', icon: ph('arrow-counter-clockwise', C.windfall) },
-      { name: '积分变现', icon: ph('star', C.windfall) },
-      { name: '信用卡返现', icon: ph('credit-card', C.windfall) },
-      { name: '平台返现', icon: ph('coins', C.windfall) }
-    ]
-  },
-  {
-    name: '家庭收入', type: 1, icon: ph('users-three', C.family),
-    children: [
-      { name: '父母给予', icon: ph('users-three', C.family) },
-      { name: '配偶转账', icon: ph('heart', C.family) },
-      { name: '子女给予', icon: ph('baby', C.family) },
-      { name: '亲友赠予', icon: ph('handshake', C.family) },
-      { name: '压岁钱', icon: ph('envelope-simple', C.family) },
-      { name: '生日红包', icon: ph('cake', C.family) }
+      { name: '返现', icon: ph('credit-card', C.windfall) },
+      { name: '其他偏财', icon: ph('dots-three-circle', C.windfall) }
     ]
   },
   {

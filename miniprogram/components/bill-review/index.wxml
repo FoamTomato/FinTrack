@@ -1,0 +1,95 @@
+<view class="container">
+
+  <!-- 识别中 -->
+  <view wx:if="{{status === 'pending' || status === 'processing'}}" class="state-wrap">
+    <view class="state-card">
+      <view class="loader-ring"></view>
+      <view class="state-title">{{loadingTitle}}</view>
+      <view class="state-sub">{{loadingTip}}</view>
+    </view>
+  </view>
+
+  <!-- 识别失败 -->
+  <view wx:elif="{{status === 'failed'}}" class="state-wrap">
+    <view class="state-card">
+      <view class="state-emoji">😢</view>
+      <view class="state-title">识别失败</view>
+      <view class="state-sub">{{failedTip}}</view>
+      <button class="state-btn" bindtap="onBack">返回重试</button>
+    </view>
+  </view>
+
+  <!-- 识别完成 -->
+  <block wx:else>
+    <view wx:if="{{items.length === 0}}" class="state-wrap">
+      <view class="state-card">
+        <view class="state-emoji">🔍</view>
+        <view class="state-title">{{emptyTip}}</view>
+        <button class="state-btn" bindtap="onBack">返回</button>
+      </view>
+    </view>
+
+    <block wx:else>
+      <!-- 全选/统计卡片 -->
+      <view class="fui-card summary-card">
+        <view class="summary-left" bindtap="onToggleAll">
+          <view class="checkbox {{allChecked ? 'checked' : ''}}"></view>
+          <text class="summary-label">全选</text>
+        </view>
+        <view class="summary-right">
+          <text class="summary-num">{{checkedCount}}</text>
+          <text class="summary-tip"> / {{items.length}} 条已选</text>
+        </view>
+      </view>
+
+      <!-- 账单列表卡片 -->
+      <view class="fui-card list-card">
+        <view class="fui-card-title">识别结果</view>
+        <view class="bill-list">
+          <view
+            wx:for="{{items}}"
+            wx:key="_idx"
+            class="bill-row {{item.refunded ? 'refunded' : ''}}"
+            bindtap="onEditItem"
+            data-idx="{{index}}"
+          >
+            <view class="bill-check" catchtap="onToggleItem" data-idx="{{index}}">
+              <view class="checkbox {{item.checked ? 'checked' : ''}}"></view>
+            </view>
+            <image
+              wx:if="{{item.cropFullUrl}}"
+              class="bill-crop"
+              src="{{item.cropFullUrl}}"
+              mode="aspectFill"
+              catchtap="onPreviewCrop"
+              data-url="{{item.cropFullUrl}}"
+            />
+            <view wx:else class="bill-icon">{{item.type == 1 ? '💰' : '🛒'}}</view>
+            <view class="bill-info">
+              <view class="bill-title-row">
+                <text class="bill-category">{{item.category}}</text>
+                <text wx:if="{{item.refunded}}" class="bill-badge refunded">已退款</text>
+                <text wx:if="{{item.low_confidence}}" class="bill-badge">待核对</text>
+              </view>
+              <view class="bill-meta">
+                <text class="bill-date">{{item.date}}{{item.time ? ' ' + item.time : ''}}</text>
+                <text class="bill-note" wx:if="{{item.note}}">· {{item.note}}</text>
+              </view>
+            </view>
+            <view class="bill-amount {{item.type == 1 ? 'income' : 'expense'}} {{item.amount_warn ? 'warn' : ''}}">
+              <text wx:if="{{item.amount_warn}}" class="warn-mark">⚠</text>{{item.type == 1 ? '+' : '-'}}{{item.amount}}
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 底部按钮 -->
+      <view class="footer-action">
+        <button class="submit-btn-premium" bindtap="onBatchCreate" disabled="{{checkedCount === 0 || imported}}">
+          {{imported ? '已记账' : '一键记账（' + checkedCount + ' 条）'}}
+        </button>
+      </view>
+    </block>
+  </block>
+
+</view>

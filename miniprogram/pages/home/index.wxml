@@ -34,31 +34,92 @@
     </view>
   </view>
 
-  <!-- 顶部分类筛选 (重排：全部优先) -->
-  <view class="filter-bar">
-    <view class="filter-item {{typeFilter == 0 ? 'active' : ''}}" bindtap="onTypeChange" data-type="0">全部</view>
-    <view class="filter-item {{typeFilter == 2 ? 'active' : ''}}" bindtap="onTypeChange" data-type="2">支出</view>
-    <view class="filter-item {{typeFilter == 1 ? 'active' : ''}}" bindtap="onTypeChange" data-type="1">收入</view>
+  <!-- 统计分析卡片：饼图 + 大类占比 -->
+  <view class="fui-card">
+    <view class="fui-card-title">{{typeFilter == 1 ? '收入构成' : '支出构成'}}</view>
+    <view class="fui-card-content">
+      <view class="analysis-overview" wx:if="{{analysisList.length > 0}}">
+        <!-- 环形饼图 -->
+        <view class="pie-wrap" style="background: {{pieStyle}}">
+          <view class="pie-hole">
+            <text class="pie-total-label">{{typeFilter == 1 ? '收入' : '支出'}}</text>
+            <text class="pie-total">¥{{analysisTotal}}</text>
+          </view>
+        </view>
+        <!-- 图例（前 4 大类占比） -->
+        <view class="pie-legend">
+          <view class="legend-item" wx:for="{{pieLegend}}" wx:key="name">
+            <view class="dot" style="background: {{item.color}}"></view>
+            <text class="name">{{item.name}}</text>
+            <text class="pct">{{item.percent}}%</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 前 6 大类柱状图 -->
+      <view class="bar-chart" wx:if="{{barChartData.length > 0}}">
+        <view class="bar-item" wx:for="{{barChartData}}" wx:key="name">
+          <text class="bar-value">{{item.displayAmount}}</text>
+          <view class="bar-column-wrapper">
+            <view class="bar-column" style="height: {{item.heightPercent}}%; background: {{item.color}}"></view>
+          </view>
+          <text class="bar-label">{{item.displayName}}</text>
+        </view>
+      </view>
+
+      <view class="analysis-empty" wx:if="{{!loading && analysisList.length === 0}}">该时间段内暂无记录</view>
+    </view>
   </view>
 
-  <!-- 统计概览卡片 -->
-  <view class="fui-card">
-    <view class="fui-card-title" style="border-left-color: {{chartColor}};">{{chartTitle}}</view>
+  <!-- 分类明细卡片：大类占比 + 点击展开小类 -->
+  <view class="fui-card" wx:if="{{analysisList.length > 0}}">
+    <view class="fui-card-title">分类明细</view>
     <view class="fui-card-content">
-      <!-- 真实图表 (直接展示，配合动画) -->
-      <canvas type="2d" id="lineChart" class="chart-container {{!loading ? 'fade-in' : ''}}" 
-        style="width: 100%; height: 300rpx; opacity: 0;"
-        hidden="{{showDetailPopup || showBillTypeModal}}"
-        bindtouchstart="handleChartTouch"
-        bindtouchmove="handleChartTouch"
-        bindtouchend="handleChartEnd">
-      </canvas>
+      <view class="category-row {{item.expanded ? 'expanded' : ''}}"
+            wx:for="{{analysisList}}" wx:key="name">
+        <view class="row-main" bindtap="onToggleSub" data-index="{{index}}">
+          <view class="cat-icon">
+            <image wx:if="{{item.iconUrl}}" class="cat-icon-img" src="{{item.iconUrl}}" mode="aspectFit"></image>
+            <text wx:else>{{item.icon || '🏷️'}}</text>
+          </view>
+          <view class="cat-body">
+            <view class="body-top">
+              <text class="cat-name">{{item.name}}</text>
+              <text class="cat-amount">¥{{item.amount}}</text>
+            </view>
+            <view class="body-bottom">
+              <view class="progress-bar">
+                <view class="progress-fill" style="width:{{item.percent}}%; background: {{item.color}}"></view>
+              </view>
+              <text class="cat-pct">{{item.percent}}%</text>
+            </view>
+          </view>
+          <view class="expand-icon {{item.expanded ? 'up' : ''}}"></view>
+        </view>
+
+        <!-- 子分类展开 -->
+        <view class="sub-list" wx:if="{{item.expanded}}">
+          <view class="sub-item" wx:for="{{item.items}}" wx:key="name" wx:for-item="sub">
+            <view class="sub-line"></view>
+            <text class="sub-name">{{sub.name}}</text>
+            <text class="sub-amount">¥{{sub.amount}}</text>
+            <text class="sub-pct">{{sub.percent}}%</text>
+          </view>
+        </view>
+      </view>
     </view>
   </view>
 
   <!-- 月度收支日历 -->
   <view class="fui-card">
-    <view class="fui-card-title">月度收支日历</view>
+    <view class="fui-card-title-row">
+      <view class="fui-card-title-text">月度收支日历</view>
+      <view class="card-filter-tabs">
+        <view class="card-filter-item {{typeFilter == 0 ? 'active' : ''}}" bindtap="onTypeChange" data-type="0">全部</view>
+        <view class="card-filter-item {{typeFilter == 2 ? 'active' : ''}}" bindtap="onTypeChange" data-type="2">支出</view>
+        <view class="card-filter-item {{typeFilter == 1 ? 'active' : ''}}" bindtap="onTypeChange" data-type="1">收入</view>
+      </view>
+    </view>
     <view class="fui-card-content">
       <!-- 日历头部导航 -->
       <view class="calendar-nav">
@@ -96,57 +157,54 @@
     </view>
   </view>
 
-  <!-- 明细列表卡片 (分组化重构) -->
+  <!-- 明细列表卡片 (扁平化：每张卡片显示完整年月日时分) -->
   <view class="fui-card">
     <view class="fui-card-title">近期明细</view>
     <view class="fui-card-content">
-      <block wx:for="{{groupedTransactions}}" wx:for-item="group" wx:for-index="groupIndex" wx:key="date">
-        <view class="group-header">
-           <text class="group-date">{{group.date}}</text>
-        </view>
-        <view class="fui-list">
-          <block wx:for="{{group.items}}" wx:key="id">
-            <movable-area class="list-row-area">
-                <movable-view class="list-row-content"
-                            direction="horizontal"
-                            damping="40"
-                            x="{{item.x}}"
-                            data-index="{{index}}"
-                            data-group-index="{{groupIndex}}"
-                            data-id="{{item.id}}"
-                            bindchange="onSwipeChange"
-                            bindtouchstart="onSwipeStart"
-                            bindtouchend="onSwipeEnd"
-                            bindtap="onEditTransaction"
-                            style="width: calc(100% + 150rpx); display: flex;">
+      <view class="fui-list">
+        <block wx:for="{{transactions}}" wx:key="id">
+          <movable-area class="list-row-area">
+              <movable-view class="list-row-content"
+                          direction="horizontal"
+                          damping="40"
+                          x="{{item.x}}"
+                          data-index="{{index}}"
+                          data-id="{{item.id}}"
+                          bindchange="onSwipeChange"
+                          bindtouchstart="onSwipeStart"
+                          bindtouchend="onSwipeEnd"
+                          bindtap="onEditTransaction"
+                          style="width: calc(100% + 150rpx); display: flex;">
 
-                  <view class="fui-list-cell" style="flex: 1; padding-left: 20rpx;">
-                    <view class="cell-icon">
-                      <image wx:if="{{item.iconUrl}}" class="cell-icon-img" src="{{item.iconUrl}}" mode="aspectFit"></image>
-                      <text wx:else>{{item.icon}}</text>
+                <view class="fui-list-cell" style="flex: 1; padding-left: 20rpx;">
+                  <view class="cell-icon">
+                    <image wx:if="{{item.iconUrl}}" class="cell-icon-img" src="{{item.iconUrl}}" mode="aspectFit"></image>
+                    <text wx:else>{{item.icon}}</text>
+                  </view>
+                  <view class="cell-info">
+                    <view class="cell-category">
+                      {{item.category}}
+                      <!-- 小组账本显示创建人 -->
+                      <image wx:if="{{item.creatorAvatar}}" class="creator-avatar" src="{{item.creatorAvatar}}" mode="aspectFill"></image>
+                      <text wx:elif="{{item.creatorName}}" class="creator-name">{{item.creatorName}}</text>
                     </view>
-                    <view class="cell-info">
-                      <view class="cell-category">
-                        {{item.category}}
-                        <!-- 小组账本显示创建人 -->
-                        <image wx:if="{{item.creatorAvatar}}" class="creator-avatar" src="{{item.creatorAvatar}}" mode="aspectFill"></image>
-                        <text wx:elif="{{item.creatorName}}" class="creator-name">{{item.creatorName}}</text>
-                      </view>
-                      <text class="cell-time">{{item.note || '无备注'}}</text>
-                    </view>
-                    <view class="cell-amount {{item.type === 1 ? 'income' : 'expense'}}" style="margin-right: 30rpx;">
+                    <text class="cell-time">{{item.note || '无备注'}}</text>
+                  </view>
+                  <view class="cell-right-box" style="margin-right: 30rpx;">
+                    <view class="cell-amount {{item.type === 1 ? 'income' : 'expense'}}">
                       {{item.type === 1 ? '+' : '-'}}{{item.amount}}
                     </view>
+                    <view class="cell-full-time">{{item.displayDateTime}}</view>
                   </view>
+                </view>
 
-                  <!-- 红色按钮放在 movable-view 内部末尾 -->
-                  <view class="delete-btn" catchtap="onDeleteTransaction" data-id="{{item.id}}" data-group-date="{{group.date}}">删除</view>
-                </movable-view>
-            </movable-area>
-          </block>
-        </view>
-      </block>
-      <view class="empty-tip" wx:if="{{!groupedTransactions.length && !loading}}">暂无记录</view>
+                <!-- 红色按钮放在 movable-view 内部末尾 -->
+                <view class="delete-btn" catchtap="onDeleteTransaction" data-id="{{item.id}}">删除</view>
+              </movable-view>
+          </movable-area>
+        </block>
+      </view>
+      <view class="empty-tip" wx:if="{{!transactions.length && !loading}}">暂无记录</view>
       <view class="empty-tip" wx:if="{{loading}}">加载中...</view>
     </view>
   </view>
@@ -176,7 +234,7 @@
               <view class="cell-amount {{item.type === 1 ? 'income' : 'expense'}}">
                 {{item.type === 1 ? '+' : '-'}}{{item.amount}}
               </view>
-              <view class="cell-full-time">{{item.formattedTime}}</view>
+              <view class="cell-full-time">{{item.dayTime}}</view>
             </view>
           </view>
         </view>
@@ -219,7 +277,6 @@
            <view class="sheet-empty-tip" bindtap="navToSettings" data-url="/pages/group/index">暂无小组，去创建或加入 ></view>
         </block>
       </view>
-      <view class="sheet-cancel" bindtap="closeBillTypeModal">取消</view>
     </view>
   </view>
 </view>

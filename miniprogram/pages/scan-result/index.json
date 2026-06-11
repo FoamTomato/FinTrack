@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "识别结果",
+  "usingComponents": {
+    "bill-review": "/components/bill-review/index"
+  }
+}

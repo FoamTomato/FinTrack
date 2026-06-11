@@ -24,10 +24,19 @@ app.use('/api/transaction', require('./routes/transaction'))
 app.use('/api/category', require('./routes/category'))
 app.use('/api/group', require('./routes/group'))
 app.use('/api/upload', require('./routes/upload'))
+app.use('/api/scan', require('./routes/scan'))
+app.use('/api/voice', require('./routes/voice'))
+app.use('/api/docker-stats', require('./routes/dockerStats'))
+app.use('/api/server-stats', require('./routes/serverStats'))
 
 // ======== 错误处理（必须在路由之后） ========
 app.use(require('./middleware/errorHandler'))
 
 // ======== 启动服务 ========
 const PORT = process.env.PORT || 3000
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`)
+  require('./services/cleanupService').startCleanupScheduler()
+  // 后台任务 worker：认领/重跑 识图&语音 解析任务，重启可恢复、并发受限
+  require('./services/taskWorker').start()
+})

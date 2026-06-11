@@ -1,3 +1,6 @@
 {
-  "usingComponents": {}
+  "usingComponents": {
+    "bill-edit-form": "/components/bill-edit-form/index"
+  },
+  "enablePullDownRefresh": true
 }

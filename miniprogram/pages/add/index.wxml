@@ -1,67 +1,159 @@
-<view class="container">
-  <form bindsubmit="onSubmit">
-    <!-- 类型切换 (和首页筛选栏统一) -->
-    <view class="type-tab-bar">
-      <view class="tab-item {{transactionType == 2 ? 'active expense' : ''}}" bindtap="onChangeTransactionType" data-type="2">支出</view>
-      <view class="tab-item {{transactionType == 1 ? 'active income' : ''}}" bindtap="onChangeTransactionType" data-type="1">收入</view>
-    </view>
+<view class="page">
+  <!-- 空状态 -->
+  <view wx:if="{{empty && !loading}}" class="empty">
+    <view class="em-ic">📝</view>
+    <view class="em-t">还没有记账记录</view>
+    <view class="em-s">长按底部「记一笔」上滑选择方式{{'\n'}}或轻点直接开始</view>
+  </view>
 
-    <!-- 输入主卡片 -->
-    <view class="fui-card">
-      <view class="input-row main-amount">
-        <text class="currency">¥</text>
-        <input name="amount" type="digit" placeholder="0.00" value="{{amount}}" placeholder-class="placeholder-amount" focus="{{true}}" bindinput="onAmountInput" />
+  <!-- 时间线 -->
+  <scroll-view wx:else scroll-y class="timeline" enhanced show-scrollbar="{{false}}">
+    <block wx:for="{{groups}}" wx:key="ymd" wx:for-item="group">
+      <view class="day-sep"><text>{{group.label}}</text></view>
+
+      <view
+        wx:for="{{group.items}}" wx:key="key" wx:for-item="card"
+        class="tl-item"
+        data-type="{{card.cardType}}"
+        data-id="{{card.id}}"
+        data-taskid="{{card.taskId}}"
+        data-batchid="{{card.batchId}}"
+        bindtap="onCardTap">
+
+        <view class="tl-rail">
+          <view class="tl-badge {{card.cardType}}">
+            <text wx:if="{{card.cardType === 'manual'}}">✏️</text>
+            <text wx:elif="{{card.cardType === 'voice'}}">🎤</text>
+            <text wx:else>📷</text>
+          </view>
+        </view>
+
+        <view class="tl-body">
+          <!-- 时间戳 -->
+          <view class="tl-time">
+            {{card.hm || ''}}
+            <text wx:if="{{card.cardType === 'manual'}}"> · 手动</text>
+            <text wx:elif="{{card.cardType === 'voice'}}"> · 语音</text>
+            <text wx:else> · 图片批次 · {{card.photoCount}} 张</text>
+          </view>
+
+          <!-- 手动卡 -->
+          <view wx:if="{{card.cardType === 'manual'}}" class="card c-manual">
+            <view class="cat-ic">
+              <image wx:if="{{card.iconUrl}}" src="{{card.iconUrl}}" class="cat-img" />
+              <text wx:else>{{card.type === 1 ? '💰' : '💸'}}</text>
+            </view>
+            <view class="mid">
+              <view class="cat">{{card.category}}</view>
+              <view wx:if="{{card.note}}" class="note">{{card.note}}</view>
+            </view>
+            <view class="amt {{card.type === 1 ? 'inc' : 'exp'}}">
+              {{card.type === 1 ? '+' : '-'}}{{card.amount}}
+            </view>
+          </view>
+
+          <!-- 语音卡 -->
+          <view wx:elif="{{card.cardType === 'voice'}}" class="card c-voice">
+            <view class="v-quote">
+              <text class="wave">🔊</text>
+              <text class="txt">{{card.inputText || '（无文字）'}}</text>
+            </view>
+            <view wx:if="{{card.miniItems.length}}" class="mini-list">
+              <view wx:for="{{card.miniItems}}" wx:key="index" wx:for-item="mi" class="mini-row">
+                <text class="dot"></text>
+                <text class="mc">{{mi.category}}</text>
+                <text class="ma">{{mi.type === 1 ? '+' : '-'}}{{mi.amount}}</text>
+              </view>
+            </view>
+            <view class="card-foot">
+              <text class="pill {{card.pill.key}}">{{card.pill.text}}</text>
+              <text wx:if="{{card.itemCount}}" class="sum">识别 <text class="b">{{card.itemCount}}</text> 笔</text>
+            </view>
+          </view>
+
+          <!-- 图片批次卡 -->
+          <view wx:else class="card c-scan">
+            <view class="grid">
+              <view wx:for="{{card.gridPhotos}}" wx:key="taskId" wx:for-item="ph"
+                class="ph {{ph.recognized ? 'recognized' : ''}}">
+                <image wx:if="{{ph.thumb}}" src="{{ph.thumb}}" class="ph-img" mode="aspectFill" lazy-load></image>
+                <text wx:if="{{ph.processing}}" class="ph-ph">⏳</text>
+                <text wx:elif="{{ph.failed}}" class="ph-ph">⚠️</text>
+                <text wx:if="{{ph.itemCount}}" class="badge-n">{{ph.itemCount}}笔</text>
+              </view>
+              <view wx:if="{{card.overflow > 0}}" class="ph more">+{{card.overflow}}</view>
+            </view>
+            <view class="card-foot">
+              <text class="pill {{card.pill.key}}">{{card.pill.text}}</text>
+              <text class="sum">{{card.total}} 张</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <view class="tl-bottom-pad"></view>
+  </scroll-view>
+
+  <!-- ============ 手动 sheet ============ -->
+  <view wx:if="{{activeSheet === 'manual'}}" class="sheet-scrim" bindtap="closeSheet">
+    <view class="sheet manual-sheet" catchtap="noop">
+      <view class="grip"></view>
+      <view class="sh-head">
+        <text class="sh-title">✏️ 手动记账</text>
+        <text class="sh-close" bindtap="closeSheet">✕</text>
+      </view>
+      <bill-edit-form
+        id="manualForm"
+        submitText="保存记录"
+        hint=""
+        bind:save="onManualSave"
+      />
+    </view>
+  </view>
+
+  <!-- ============ 语音 sheet ============ -->
+  <view wx:if="{{activeSheet === 'voice'}}" class="sheet-scrim" bindtap="closeSheet">
+    <view class="sheet voice-sheet" catchtap="noop">
+      <view class="grip"></view>
+      <view class="sh-head">
+        <text class="sh-title">🎤 语音记账</text>
+        <text class="sh-close" bindtap="closeSheet">✕</text>
+      </view>
+      <view class="voice-sheet-body">
+        <view class="vs-text {{voiceText ? '' : 'empty'}}">
+          {{voiceText || '按住下方按钮说话，例如：今天打车30，午饭25'}}
+        </view>
+        <view
+          class="vs-mic {{recording ? 'rec' : ''}}"
+          bindtouchstart="onStartRecord"
+          bindtouchend="onStopRecord"
+          bindtouchcancel="onStopRecord">🎤</view>
+        <view class="vs-state">{{recording ? '松开结束' : (transcribing ? '识别中…' : '按住说话')}}</view>
+      </view>
+      <button class="submit-btn {{(!voiceText || voiceSubmitting) ? 'ghost' : ''}}"
+        bindtap="onVoiceParse" disabled="{{!voiceText || voiceSubmitting}}">识别记账</button>
+    </view>
+  </view>
+
+  <!-- ============ 图片 sheet ============ -->
+  <view wx:if="{{activeSheet === 'scan'}}" class="sheet-scrim" bindtap="closeSheet">
+    <view class="sheet scan-sheet" catchtap="noop">
+      <view class="grip"></view>
+      <view class="sh-head">
+        <text class="sh-title">📷 图片记账</text>
+        <text class="sh-close" bindtap="closeSheet">✕</text>
+      </view>
+      <view class="scan-sheet-body">
+        <view class="scan-pick" bindtap="startScan">
+          <view class="scan-cam">📷</view>
+          <view class="scan-pick-txt">
+            <view class="scan-pick-t">选择账单图片</view>
+            <view class="scan-pick-s">支持最多 9 张 · 自动识别每一笔</view>
+          </view>
+        </view>
+        <view class="scan-tip">拍清晰的微信/支付宝/银行账单截图，识别更准</view>
       </view>
     </view>
-
-    <!-- 配置详情卡片 -->
-    <view class="fui-card">
-      <!-- 选择分类 (二级联动) -->
-      <picker
-        mode="multiSelector"
-        bindchange="onCategoryChange"
-        bindcolumnchange="onCategoryColumnChange"
-        value="{{multiIndex}}"
-        range="{{multiArray}}"
-      >
-        <view class="input-row border-bottom">
-          <view class="label-box">
-             <text class="icon-emoji">📁</text>
-             <text class="label">分类</text>
-          </view>
-          <view class="picker-value">
-            {{multiArray[0][multiIndex[0]]}} > {{multiArray[1][multiIndex[1]]}}
-            <view class="nav-arrow right"></view>
-          </view>
-        </view>
-      </picker>
-
-      <!-- 选择日期 -->
-      <picker mode="date" value="{{date}}" bindchange="onDateChange">
-        <view class="input-row border-bottom">
-          <view class="label-box">
-             <text class="icon-emoji">📅</text>
-             <text class="label">日期</text>
-          </view>
-          <view class="picker-value">
-            {{date}}
-            <view class="nav-arrow right"></view>
-          </view>
-        </view>
-      </picker>
-
-      <!-- 备注输入 -->
-      <view class="input-row">
-        <view class="label-box">
-           <text class="icon-emoji">📝</text>
-           <text class="label">备注</text>
-        </view>
-        <input name="note" placeholder="写点备注..." value="{{note}}" class="note-input" placeholder-class="placeholder-note" />
-      </view>
-    </view>
-
-    <view class="footer-action">
-      <button form-type="submit" class="submit-btn-premium">保存记录</button>
-    </view>
-  </form>
+  </view>
 </view>

@@ -103,6 +103,29 @@ App({
   },
 
   /**
+   * 强制重新登录：清除可能失效的身份缓存，重新走 wx.login → 后端换 openid。
+   * 供 request 层在收到 code 4010（登录失效）时调用，返回 Promise<boolean>（最终授权状态）。
+   * 并发去重：多个请求同时失效时只触发一次实际登录。
+   */
+  forceRelogin() {
+    if (this._reloginPromise) return this._reloginPromise;
+    this._reloginPromise = new Promise((resolve) => {
+      // 清掉旧缓存，否则 loginAndCheck 会命中缓存直接返回旧（失效）openid
+      try { wx.removeStorageSync('userInfo'); } catch (e) {}
+      this.globalData.openid = '';
+      this.globalData.userInfo = null;
+      this.globalData.isAuthorized = null;
+      this._loginChecking = false;
+      this._loginCallbacks.push((authorized) => {
+        this._reloginPromise = null;
+        resolve(authorized);
+      });
+      this.loginAndCheck();
+    });
+    return this._reloginPromise;
+  },
+
+  /**
    * 用户完成授权后调用，更新用户信息
    */
   async updateUserInfo(nickname, avatarUrl) {

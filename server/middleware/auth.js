@@ -4,10 +4,14 @@
  * 排除不需要鉴权的路由（如 /api/user/login）
  */
 const SKIP_PATHS = ['/api/user/login', '/health']
+const SKIP_PREFIXES = ['/api/server-stats', '/api/docker-stats']
 
 const auth = (req, res, next) => {
   // 跳过无需鉴权的路由
   if (SKIP_PATHS.includes(req.path)) {
+    return next()
+  }
+  if (SKIP_PREFIXES.some(p => req.path === p || req.path.startsWith(p + '/'))) {
     return next()
   }
 

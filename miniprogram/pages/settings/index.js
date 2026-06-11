@@ -37,6 +37,8 @@ Page({
    * 生命周期 —— 只做调度
    */
   onShow() {
+    const tb = this.getTabBar && this.getTabBar();
+    if (tb && tb.setSelected) tb.setSelected(2);
     this.fetchUserProfile();
   },
 

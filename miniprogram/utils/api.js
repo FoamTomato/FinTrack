@@ -132,6 +132,59 @@ class API {
   static async getGroupMembers(groupId) {
     return request('/api/group/members', 'GET', { id: groupId });
   }
+  // ==================== 扫描识别模块 ====================
+
+  /** 上传账单图片，创建识别任务 */
+  static async uploadScanImage(filePath) {
+    return uploadFile('/api/scan/upload', filePath, 'file');
+  }
+
+  /** 查询识别任务状态 */
+  static async getScanStatus(taskId) {
+    return request(`/api/scan/status/${taskId}`, 'GET');
+  }
+
+  /** 获取识别结果 */
+  static async getScanResult(taskId) {
+    return request(`/api/scan/result/${taskId}`, 'GET');
+  }
+
+  /** 批量创建账单（taskId 可选，用于标记已导入；taskType 区分 scan/voice 任务表） */
+  static async batchCreateTransaction(items, taskId, taskType) {
+    return request('/api/transaction/batch-create', 'POST', { items, taskId: taskId || null, taskType: taskType || 'scan' });
+  }
+
+  /** 获取识别历史任务列表 */
+  static async getScanHistory() {
+    return request('/api/scan/list', 'GET');
+  }
+
+  // ==================== 语音识别模块 ====================
+
+  /** 上传录音文件 → 后端 ASR 转文字（同步返回 { text }） */
+  static async transcribeVoice(filePath) {
+    return uploadFile('/api/voice/transcribe', filePath, 'audio');
+  }
+
+  /** 提交语音识别文字，创建解析任务 */
+  static async parseVoice(text) {
+    return request('/api/voice/parse', 'POST', { text });
+  }
+
+  /** 查询语音解析任务状态 */
+  static async getVoiceStatus(taskId) {
+    return request(`/api/voice/status/${taskId}`, 'GET');
+  }
+
+  /** 获取语音解析结果 */
+  static async getVoiceResult(taskId) {
+    return request(`/api/voice/result/${taskId}`, 'GET');
+  }
+
+  /** 获取语音解析历史任务列表 */
+  static async getVoiceHistory() {
+    return request('/api/voice/list', 'GET');
+  }
 }
 
 module.exports = API;

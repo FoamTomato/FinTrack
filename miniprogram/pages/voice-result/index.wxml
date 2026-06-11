@@ -1,0 +1,13 @@
+<bill-review
+  id="review"
+  status="{{status}}"
+  result="{{result}}"
+  imported="{{imported}}"
+  loadingTitle="正在解析语音"
+  loadingTip="AI 解析中，通常需要几秒"
+  failedTip="请返回重新录音"
+  emptyTip="未识别到账单条目"
+  bind:edititem="onEditItem"
+  bind:submit="onBatchCreate"
+  bind:back="onBack"
+/>

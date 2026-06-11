@@ -11,7 +11,15 @@ async function migrate() {
     'v4_category_stats.sql',
     'v5_soft_delete_support.sql',
     'v6_category_global_id.sql',
-    'v7_category_is_enabled.sql'
+    'v7_category_is_enabled.sql',
+    'v8_scan_tasks.sql',
+    'v9_llm_keys.sql',
+    'v10_scan_imported.sql',
+    'v11_trade_time.sql',
+    'v12_voice_tasks.sql',
+    'v13_dedup_hash.sql',
+    'v14_scan_crop.sql',
+    'v15_txn_source.sql'
   ];
 
   for (const fileName of sqlFiles) {

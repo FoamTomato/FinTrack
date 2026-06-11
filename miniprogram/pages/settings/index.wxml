@@ -25,16 +25,6 @@
         <view class="nav-arrow right"></view>
       </view>
     </view>
-    <view class="settings-item" bindtap="onNavTo" data-url="/pages/stats/index">
-      <view class="item-left">
-        <text class="item-icon">📊</text>
-        <text class="item-label">统计分析</text>
-      </view>
-      <view class="item-right">
-        <text class="item-value">可视化账单查看</text>
-        <view class="nav-arrow right"></view>
-      </view>
-    </view>
   </view>
 
   <!-- 数据配置 -->

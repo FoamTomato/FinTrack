@@ -26,4 +26,7 @@ router.post('/update', (req, res, next) => transactionController.update(req, res
 // 删除账单
 router.post('/delete', (req, res, next) => transactionController.delete(req, res, next))
 
+// 批量记账（图片识别导入）
+router.post('/batch-create', (req, res, next) => transactionController.batchCreate(req, res, next))
+
 module.exports = router

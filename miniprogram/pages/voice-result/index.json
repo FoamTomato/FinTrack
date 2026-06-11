@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "语音记账",
+  "usingComponents": {
+    "bill-review": "/components/bill-review/index"
+  }
+}

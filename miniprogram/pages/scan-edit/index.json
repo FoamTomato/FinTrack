@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "编辑账单",
+  "usingComponents": {
+    "bill-edit-form": "/components/bill-edit-form/index"
+  }
+}

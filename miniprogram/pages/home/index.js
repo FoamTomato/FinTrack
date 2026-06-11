@@ -14,7 +14,6 @@ Page({
     transactions: [],
     heatmapData: [],
     loading: true,
-    maxY: 100,
     typeFilter: 0,
     billType: 0,
     myGroups: [],
@@ -25,13 +24,18 @@ Page({
       totalExpense: '0.00',
       balance: '0.00'
     },
-    groupedTransactions: [],
-    chartTitle: '近30日收支变动',
-    chartColor: '#1890ff',
     currentYear: new Date().getFullYear(),
     currentMonth: new Date().getMonth() + 1,
     showDetailPopup: false,
     detailDate: '',
+    // 统计分析（饼图 + 柱状图 + 大类占比 + 小类下钻）
+    analysisTotal: 0,
+    analysisList: [],
+    barChartData: [],
+    pieStyle: '',
+    pieLegend: [],
+    chartColors: ['#07C160', '#FFC107', '#1989FA', '#FF9800', '#9C27B0', '#E91E63', '#009688', '#E0E0E0'],
+    incomeColors: ['#FF9800', '#FF5722', '#FFC107', '#FFEB3B', '#795548', '#607D8B']
   },
 
   /**
@@ -44,6 +48,8 @@ Page({
   },
 
   onShow() {
+    const tb = this.getTabBar && this.getTabBar();
+    if (tb && tb.setSelected) tb.setSelected(0);
     if (app.globalData.isAuthorized === true) {
       this.fetchData();
       this.fetchMyGroups();
@@ -69,7 +75,7 @@ Page({
   },
 
   /**
-   * 数据获取 —— 主数据（Dashboard + 趋势）
+   * 数据获取 —— 主数据（Dashboard + 分类分析）
    */
   async fetchData() {
     if (!app.globalData.isAuthorized) {
@@ -86,56 +92,128 @@ Page({
     const lastDay = new Date(y, m, 0).getDate();
     const endDate = `${y}-${('0' + m).slice(-2)}-${('0' + lastDay).slice(-2)}`;
 
-    try {
-      // 步骤2：并行请求 Dashboard 和趋势数据
-      const now = new Date();
-      const isThisMonth = y === now.getFullYear() && m === (now.getMonth() + 1);
-      const trendDate = isThisMonth ? null : `${y}-${('0' + m).slice(-2)}-01`;
+    // 分类饼图混收支无意义：全部/支出都看支出构成，收入看收入构成
+    const analysisType = filter === 1 ? 1 : 2;
 
-      const [dashboardRes, trendRes] = await Promise.all([
+    try {
+      // 步骤2：并行请求 Dashboard 和分类分析数据
+      const [dashboardRes, analysisRes] = await Promise.all([
         API.getDashboard({ startDate, endDate, type: filter, scope: billType, groupId: currentGroupId }),
-        API.getTrend({ type: filter, date: trendDate, scope: billType, groupId: currentGroupId })
+        API.getAnalysis({ startDate, endDate, type: analysisType, scope: billType, groupId: currentGroupId })
       ]);
 
-      // 步骤3：更新图表标题
-      const titleBase = filter === 1 ? '收入趋势' : (filter === 2 ? '支出趋势' : '收支变动');
-      const titlePrefix = isThisMonth ? '近30日' : `${m}月`;
-      this.setData({ chartTitle: `${titlePrefix}${titleBase}` });
-
-      // 步骤4：处理 Dashboard 数据
+      // 步骤3：处理 Dashboard 数据
       if (dashboardRes.code === 0) {
         const { list, summary: rawSummary, stats } = dashboardRes.data || {};
 
         const summary = this.formatSummary(rawSummary);
         const processedList = this.formatTransactionList(list);
-        const groups = this.groupTransactionsByDate(processedList);
 
-        this.setData({ summary, groupedTransactions: groups, transactions: processedList });
+        this.setData({ summary, transactions: processedList });
 
-        // 步骤5：处理收支日历
+        // 步骤4：处理收支日历
         this.processCalendar(stats || [], y, m - 1, filter);
       }
 
-      // 步骤6：处理趋势曲线
-      if (trendRes.code === 0) {
-        const { current, last, dailyAverage, lastAverage, dateRange } = trendRes.data || {};
-        this.processTrend(current, last, dailyAverage, lastAverage, dateRange);
+      // 步骤5：处理分类分析（饼图 + 柱状图 + 大类占比）
+      if (analysisRes.code === 0) {
+        this.buildAnalysis(analysisRes.data || {}, analysisType);
       }
 
     } catch (err) {
       log.error('fetchData failed:', err);
       Loading.error('加载失败');
     } finally {
-      this.setData({ loading: false }, () => {
-        if (this.chartParams) {
-          const { data, maxY, cycleDays, lastAverage } = this.chartParams;
-          setTimeout(() => {
-            this.drawTrendChart(data, maxY, cycleDays, lastAverage, -1, true);
-          }, 50);
-        }
-      });
+      this.setData({ loading: false });
       wx.stopPullDownRefresh();
     }
+  },
+
+  /**
+   * 数据转换 —— 分类分析（饼图/柱状图/大类占比）
+   */
+  buildAnalysis(data, analysisType) {
+    const { total = 0, list = [] } = data;
+    const colors = analysisType === 1 ? this.data.incomeColors : this.data.chartColors;
+
+    const analysisList = (list || []).map((item, i) => ({
+      ...item,
+      expanded: false,
+      iconUrl: resolveIconUrl(item.icon),
+      color: colors[i % colors.length]
+    }));
+
+    this.setData({
+      analysisTotal: total,
+      analysisList,
+      pieStyle: this.buildPieStyle(list, colors),
+      pieLegend: (list || []).slice(0, 4).map((item, i) => ({
+        ...item,
+        color: colors[i % colors.length]
+      }))
+    });
+
+    this.buildBarChartData(analysisList, analysisType);
+  },
+
+  /**
+   * 数据转换 —— 环形饼图 conic-gradient
+   */
+  buildPieStyle(list, colors) {
+    if (!list || list.length === 0) return '#F2F2F2';
+
+    let acc = 0;
+    const segs = list.map((item, i) => {
+      const start = acc;
+      acc += Number(item.percent) || 0;
+      // 最后一段补到 100%，避免浮点累加留下缝隙
+      const end = i === list.length - 1 ? 100 : acc;
+      return `${colors[i % colors.length]} ${start}% ${end}%`;
+    });
+    return `conic-gradient(${segs.join(',')})`;
+  },
+
+  /**
+   * 数据转换 —— 柱状图数据（纯 WXML 驱动，取前 6 大类）
+   */
+  buildBarChartData(list, analysisType) {
+    if (!list || list.length === 0) {
+      this.setData({ barChartData: [] });
+      return;
+    }
+
+    const drawList = list.slice(0, 6);
+    const maxVal = Math.max(...drawList.map(item => parseFloat(item.amount))) || 1;
+    const colors = analysisType === 1 ? this.data.incomeColors : this.data.chartColors;
+
+    const barChartData = drawList.map((item, index) => {
+      const amount = parseFloat(item.amount);
+      const heightPercent = Math.max((amount / maxVal) * 100, 2);
+      const displayName = item.name.length > 4 ? item.name.substring(0, 3) + '..' : item.name;
+
+      return {
+        name: item.name,
+        displayName,
+        displayAmount: amount.toFixed(0),
+        heightPercent: heightPercent.toFixed(1),
+        color: colors[index % colors.length]
+      };
+    });
+
+    this.setData({ barChartData });
+  },
+
+  /**
+   * 事件处理 —— 展开/折叠子分类
+   */
+  onToggleSub(e) {
+    const idx = e.currentTarget.dataset.index;
+    const list = this.data.analysisList;
+    list.forEach((item, i) => {
+      if (i === idx) item.expanded = !item.expanded;
+      else item.expanded = false;
+    });
+    this.setData({ analysisList: list });
   },
 
   /**
@@ -157,17 +235,17 @@ Page({
   formatTransactionList(list) {
     return (list || []).map(item => {
       const date = item.date ? item.date.split('T')[0] : '';
-      const createdAt = new Date(item.created_at);
-      const formattedTime = [
-        ('0' + createdAt.getHours()).slice(-2),
-        ('0' + createdAt.getMinutes()).slice(-2),
-        ('0' + createdAt.getSeconds()).slice(-2)
-      ].join(':');
+      // trade_time = 购买时间的时分('HH:mm')；为空表示未给时间(如识图导入)，只显示年月日
+      const tradeTime = item.trade_time || '';
+      const displayDateTime = tradeTime ? `${date} ${tradeTime}` : date;
 
       return {
         ...item,
         date,
-        formattedTime,
+        x: 0,                       // 滑动删除偏移
+        trade_time: tradeTime,
+        displayDateTime,            // 列表卡片：年月日时分 / 年月日
+        dayTime: tradeTime,         // 全天明细弹窗：仅时分(识图为空)
         iconUrl: resolveIconUrl(item.icon),
         amount: parseFloat(item.amount).toFixed(2)
       };
@@ -175,19 +253,42 @@ Page({
   },
 
   /**
-   * 数据转换 —— 按日期分组
+   * 时间格式化 —— 固定输出上海时区时间
    */
-  groupTransactionsByDate(list) {
-    const groups = [];
-    list.forEach(item => {
-      let group = groups.find(g => g.date === item.date);
-      if (!group) {
-        group = { date: item.date, items: [] };
-        groups.push(group);
+  formatShanghaiTime(value, mode) {
+    if (!value) return '';
+
+    if (typeof value === 'string') {
+      const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value);
+      const plainMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
+
+      // 后端若直接返回本地数据库时间字符串，则按原始时分秒展示，避免再次按时区偏移。
+      if (plainMatch && !hasTimezone) {
+        const month = parseInt(plainMatch[2], 10);
+        const day = parseInt(plainMatch[3], 10);
+        const hh = plainMatch[4];
+        const mm = plainMatch[5];
+        const ss = plainMatch[6] || '00';
+        if (mode === 'HH:MM') return `${hh}:${mm}`;
+        if (mode === 'HH:MM:SS') return `${hh}:${mm}:${ss}`;
+        return `${month}月${day}日 ${hh}:${mm}:${ss}`;
       }
-      group.items.push(item);
-    });
-    return groups;
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return '';
+
+    // 统一按 UTC+8 计算，避免设备本地时区影响展示结果。
+    const shanghaiDate = new Date(parsed.getTime() + 8 * 60 * 60 * 1000);
+
+    const month = shanghaiDate.getUTCMonth() + 1;
+    const day = shanghaiDate.getUTCDate();
+    const hh = ('0' + shanghaiDate.getUTCHours()).slice(-2);
+    const mm = ('0' + shanghaiDate.getUTCMinutes()).slice(-2);
+    const ss = ('0' + shanghaiDate.getUTCSeconds()).slice(-2);
+    if (mode === 'HH:MM') return `${hh}:${mm}`;
+    if (mode === 'HH:MM:SS') return `${hh}:${mm}:${ss}`;
+    return `${month}月${day}日 ${hh}:${mm}:${ss}`;
   },
 
   /**
@@ -252,73 +353,13 @@ Page({
   },
 
   /**
-   * 数据转换 —— 趋势图数据
-   */
-  processTrend(currentStats, lastStats, dailyAvgCurve, lastAverage, dateRange) {
-    const currentMap = {};
-    const lastDataMap = {};
-    const avgMap = {};
-    let maxY = 10;
-
-    // 映射本期数据
-    (currentStats || []).forEach(s => {
-      currentMap[s.date] = parseFloat(s.total_amount || 0);
-      if (currentMap[s.date] > maxY) maxY = currentMap[s.date];
-    });
-
-    // 映射上期数据
-    (lastStats || []).forEach(s => {
-      lastDataMap[s.date] = parseFloat(s.total_amount || 0);
-      if (lastDataMap[s.date] > maxY) maxY = lastDataMap[s.date];
-    });
-
-    // 映射历史日均数据
-    (dailyAvgCurve || []).forEach(s => {
-      avgMap[s.day] = parseFloat(s.avg_amount || 0);
-      if (avgMap[s.day] > maxY) maxY = avgMap[s.day];
-    });
-
-    if (lastAverage > maxY) maxY = lastAverage;
-
-    // 生成图表数据点（按日期范围生成完整 30 天，而非按返回数据条数）
-    const start = new Date(dateRange.current.start);
-    const end = new Date(dateRange.current.end);
-    const lastStart = new Date(dateRange.last.start);
-    const cycleDays = Math.round((end - start) / (24 * 3600 * 1000)) + 1;
-    const chartData = [];
-
-    for (let i = 0; i < cycleDays; i++) {
-      const curDateObj = new Date(start);
-      curDateObj.setDate(start.getDate() + i);
-      const curDateStr = curDateObj.toISOString().split('T')[0];
-
-      const lastDateObj = new Date(lastStart);
-      lastDateObj.setDate(lastStart.getDate() + i);
-      const lastDateStr = lastDateObj.toISOString().split('T')[0];
-
-      chartData.push({
-        day: curDateObj.getDate(),
-        current: currentMap[curDateStr] || 0,
-        last: lastDataMap[lastDateStr] || 0,
-        avg: avgMap[curDateObj.getDate()] || 0
-      });
-    }
-
-    this.chartParams = { data: chartData, maxY, lastAverage, cycleDays };
-    this.drawTrendChart(chartData, maxY, cycleDays, lastAverage);
-  },
-
-  /**
    * 事件处理 —— 筛选类型切换
    */
   onTypeChange(e) {
     const type = parseInt(e.currentTarget.dataset.type);
     if (type === this.data.typeFilter) return;
 
-    this.setData({
-      typeFilter: type,
-      chartColor: type === 1 ? '#ff4d4f' : '#1890ff'
-    }, () => this.fetchData());
+    this.setData({ typeFilter: type }, () => this.fetchData());
   },
 
   /**
@@ -409,9 +450,8 @@ Page({
       return;
     }
 
-    const { id, groupIndex, index } = e.currentTarget.dataset;
-    const item = this.data.groupedTransactions[groupIndex] &&
-                 this.data.groupedTransactions[groupIndex].items[index];
+    const { id, index } = e.currentTarget.dataset;
+    const item = this.data.transactions[index];
     if (!item) return;
 
     if (item.x && item.x !== 0) {
@@ -487,11 +527,8 @@ Page({
    * 事件处理 —— 滑动删除
    */
   resetSwipeStates() {
-    const groups = this.data.groupedTransactions.map(g => ({
-      ...g,
-      items: g.items.map(i => ({ ...i, x: 0 }))
-    }));
-    this.setData({ groupedTransactions: groups });
+    const list = this.data.transactions.map(i => ({ ...i, x: 0 }));
+    this.setData({ transactions: list });
   },
 
   onSwipeStart() {
@@ -508,7 +545,7 @@ Page({
   },
 
   onSwipeEnd(e) {
-    const { index, groupIndex } = e.currentTarget.dataset;
+    const { index } = e.currentTarget.dataset;
     const windowInfo = wx.getWindowInfo();
     const btnWidthPx = -(windowInfo.windowWidth / 750 * 150);
     const threshold = btnWidthPx / 2;
@@ -518,271 +555,8 @@ Page({
       finalX = btnWidthPx;
     }
 
-    const key = `groupedTransactions[${groupIndex}].items[${index}].x`;
+    const key = `transactions[${index}].x`;
     this.setData({ [key]: finalX });
     this._currentX = 0;
   },
-
-  /**
-   * 图表绘制 —— 趋势折线图（Canvas 2D）
-   */
-  handleChartTouch(e) {
-    if (!this.chartParams) return;
-    const touch = e.touches[0];
-    const { data: chartData, maxY, lastAverage } = this.chartParams;
-
-    const query = wx.createSelectorQuery();
-    query.select('#lineChart').boundingClientRect(res => {
-      if (!res) return;
-      const touchX = touch.clientX - res.left;
-      const paddingLeft = 40;
-      const paddingRight = 15;
-      const plotWidth = res.width - paddingLeft - paddingRight;
-
-      let idx = Math.round(((touchX - paddingLeft) / plotWidth) * (chartData.length - 1));
-      idx = Math.max(0, Math.min(chartData.length - 1, idx));
-
-      if (this.currentTouchIdx !== idx) {
-        this.currentTouchIdx = idx;
-        const { cycleDays } = this.chartParams;
-        this.drawTrendChart(chartData, maxY, cycleDays, lastAverage, idx);
-      }
-    }).exec();
-  },
-
-  handleChartEnd() {
-    if (!this.chartParams) return;
-    const { data: chartData, maxY, lastAverage, cycleDays } = this.chartParams;
-    this.currentTouchIdx = -1;
-    this.drawTrendChart(chartData, maxY, cycleDays, lastAverage);
-  },
-
-  drawTrendChart(data, maxY, totalDays, lastAverage, selectedIndex = -1, animate = false) {
-    const query = wx.createSelectorQuery();
-    query.select('#lineChart')
-      .fields({ node: true, size: true })
-      .exec((res) => {
-        if (!res[0] || !res[0].node) return;
-
-        const canvas = res[0].node;
-        const ctx = canvas.getContext('2d');
-        const dpr = wx.getWindowInfo().pixelRatio;
-
-        canvas.width = res[0].width * dpr;
-        canvas.height = res[0].height * dpr;
-        ctx.scale(dpr, dpr);
-
-        const width = res[0].width;
-        const height = res[0].height;
-        const paddingLeft = 45;
-        const paddingBottom = 30;
-        const paddingRight = 20;
-        const paddingTop = 75;
-        const plotWidth = width - paddingLeft - paddingRight;
-        const plotHeight = height - paddingTop - paddingBottom;
-
-        const scale = this.getProfessionalScale(maxY);
-        const niceMaxY = scale.max;
-        const xStep = plotWidth / (totalDays - 1);
-
-        let progress = animate ? 0 : 1;
-        const startTime = Date.now();
-        const duration = 1000;
-
-        const renderFrame = () => {
-          if (animate) {
-            const now = Date.now();
-            progress = Math.min(1, (now - startTime) / duration);
-            progress = 1 - Math.pow(1 - progress, 3);
-          }
-
-          ctx.clearRect(0, 0, width, height);
-
-          const formatVal = (v) => {
-            if (v === 0) return '0';
-            if (v >= 1000) return (v / 1000).toFixed(1) + 'k';
-            return Math.floor(v).toString();
-          };
-
-          // 绘制顶部图例
-          this.drawChartLegend(ctx, data, width, paddingLeft, selectedIndex);
-
-          // 绘制网格与 Y 轴
-          ctx.beginPath();
-          ctx.strokeStyle = '#f0f0f0';
-          ctx.lineWidth = 1;
-          ctx.textAlign = 'right';
-          ctx.textBaseline = 'middle';
-          ctx.fillStyle = '#999';
-          ctx.font = '9px sans-serif';
-
-          for (let i = 0; i <= 4; i++) {
-            const val = scale.step * i;
-            const y = (height - paddingBottom) - (val / niceMaxY) * plotHeight;
-            ctx.moveTo(paddingLeft, y);
-            ctx.lineTo(width - paddingRight, y);
-            ctx.fillText(formatVal(val), paddingLeft - 8, y);
-          }
-          ctx.stroke();
-
-          // 绘制 X 轴标签
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'top';
-          const labelIndices = [0, Math.floor(totalDays / 2), totalDays - 1];
-          labelIndices.forEach(idx => {
-            if (data[idx]) {
-              const x = paddingLeft + idx * xStep;
-              ctx.fillText(`${data[idx].day}日`, x, height - paddingBottom + 8);
-            }
-          });
-
-          // 开启裁剪区域
-          ctx.save();
-          ctx.beginPath();
-          ctx.rect(paddingLeft - 5, paddingTop - 10, plotWidth + 10, plotHeight + 15);
-          ctx.clip();
-
-          // 绘制指示虚线
-          if (selectedIndex >= 0) {
-            const x = paddingLeft + selectedIndex * xStep;
-            ctx.beginPath();
-            ctx.setLineDash([4, 4]);
-            ctx.strokeStyle = '#eee';
-            ctx.moveTo(x, paddingTop);
-            ctx.lineTo(x, height - paddingBottom);
-            ctx.stroke();
-            ctx.setLineDash([]);
-          }
-
-          // 绘制曲线
-          const getPoints = (seriesKey) => data.map((item, index) => {
-            const val = seriesKey === 'avg' ? item.avg : (seriesKey === 'last' ? item.last : item.current);
-            return {
-              x: paddingLeft + index * xStep,
-              y: (height - paddingBottom) - (Math.max(0, val) / niceMaxY) * plotHeight
-            };
-          });
-
-          this.drawCurve(ctx, getPoints('avg'), '#FFA500', true, 1, progress, paddingLeft, plotWidth);
-          this.drawCurve(ctx, getPoints('last'), '#b3d8ff', true, 1.5, progress, paddingLeft, plotWidth);
-          this.drawCurve(ctx, getPoints('current'), this.data.chartColor, false, 2.5, progress, paddingLeft, plotWidth);
-
-          // 绘制焦点圆点
-          if (progress >= 0.95) {
-            const currentPoints = getPoints('current');
-            const targetIdx = selectedIndex >= 0 ? selectedIndex : currentPoints.length - 1;
-            const p = currentPoints[targetIdx];
-            if (p) {
-              ctx.beginPath();
-              ctx.fillStyle = this.data.chartColor;
-              ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.strokeStyle = '#fff';
-              ctx.lineWidth = 2;
-              ctx.stroke();
-            }
-          }
-
-          ctx.restore();
-
-          if (animate && progress < 1) {
-            canvas.requestAnimationFrame(renderFrame);
-          }
-        };
-
-        renderFrame();
-      });
-  },
-
-  /**
-   * 图表辅助 —— Y 轴刻度计算
-   */
-  getProfessionalScale(max) {
-    if (max <= 0) return { max: 100, step: 25 };
-    const targetMax = max * 1.1;
-    const idealStep = targetMax / 4;
-    const magnitude = Math.pow(10, Math.floor(Math.log10(idealStep)));
-    const normalizedStep = idealStep / magnitude;
-    let step;
-    if (normalizedStep < 1.5) step = 1;
-    else if (normalizedStep < 3) step = 2;
-    else if (normalizedStep < 7) step = 5;
-    else step = 10;
-    const actualStep = step * magnitude;
-    return { max: actualStep * 4 >= targetMax ? actualStep * 4 : actualStep * 5, step: actualStep };
-  },
-
-  /**
-   * 图表辅助 —— 图例绘制
-   */
-  drawChartLegend(ctx, data, width, paddingLeft, selectedIndex) {
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-
-    const displayIdx = selectedIndex >= 0 ? selectedIndex : data.length - 1;
-    const d = data[displayIdx];
-    if (!d) return;
-
-    const items = [
-      { label: selectedIndex >= 0 ? `${d.day}日数据` : '今日', val: d.current, color: this.data.chartColor },
-      { label: '上月今日', val: d.last, color: '#b3d8ff' },
-      { label: '历史今日', val: d.avg, color: '#FFA500' }
-    ];
-    const itemWidth = (width - 60) / 3;
-
-    items.forEach((item, i) => {
-      const x = paddingLeft + i * itemWidth + 10;
-
-      ctx.beginPath();
-      ctx.fillStyle = item.color;
-      ctx.arc(x, 15, 3, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.font = '10px sans-serif';
-      ctx.fillStyle = '#999';
-      ctx.fillText(item.label, x + 8, 16);
-
-      ctx.font = 'bold 16px "DIN Alternate"';
-      ctx.fillStyle = '#333';
-      ctx.fillText(parseFloat(item.val || 0).toFixed(1), x, 36);
-    });
-  },
-
-  /**
-   * 图表辅助 —— 贝塞尔曲线绘制
-   */
-  drawCurve(ctx, points, color, isDashed, lineWidth, curProgress, paddingLeft, plotWidth) {
-    if (points.length < 2) return;
-    ctx.beginPath();
-    ctx.lineWidth = lineWidth;
-    ctx.strokeStyle = color;
-    if (isDashed) ctx.setLineDash([4, 4]); else ctx.setLineDash([]);
-
-    const maxX = paddingLeft + (plotWidth * curProgress);
-    if (points[0].x > maxX) return;
-
-    ctx.moveTo(points[0].x, points[0].y);
-
-    for (let i = 0; i < points.length - 1; i++) {
-      const p1 = points[i];
-      const p2 = points[i + 1];
-
-      if (p1.x >= maxX) break;
-
-      if (p2.x <= maxX) {
-        const cp1x = p1.x + (p2.x - p1.x) / 2;
-        const cp2x = p1.x + (p2.x - p1.x) / 2;
-        ctx.bezierCurveTo(cp1x, p1.y, cp2x, p2.y, p2.x, p2.y);
-      } else {
-        const t = (maxX - p1.x) / (p2.x - p1.x);
-        const midX = p1.x + (p2.x - p1.x) * t;
-        const midY = p1.y + (p2.y - p1.y) * t;
-        const cp1x = p1.x + (midX - p1.x) / 2;
-        ctx.quadraticCurveTo(cp1x, p1.y, midX, midY);
-        break;
-      }
-    }
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
 });

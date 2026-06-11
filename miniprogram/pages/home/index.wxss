@@ -90,39 +90,6 @@ page {
   font-family: 'DIN Alternate', sans-serif;
 }
 
-/* 分类筛选栏 */
-.filter-bar {
-  width: 92%;
-  height: 72rpx;
-  background-color: #f1f3f5;
-  border-radius: 36rpx;
-  display: flex;
-  padding: 4rpx;
-  box-sizing: border-box;
-  margin-bottom: 24rpx;
-  position: relative;
-}
-
-.filter-item {
-  flex: 1;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 26rpx;
-  color: #666;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border-radius: 32rpx;
-  z-index: 1;
-}
-
-.filter-item.active {
-  background-color: #ffffff;
-  color: #07c160;
-  font-weight: bold;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
-}
-
 /* 模拟 FirstUI 卡片风格 - 优化为更柔和小清新风格 */
 .fui-card {
   width: 92%;
@@ -141,6 +108,44 @@ page {
   margin-bottom: 30rpx;
   padding-left: 16rpx;
   border-left: 6rpx solid #07c160;
+}
+
+.fui-card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30rpx;
+}
+
+.fui-card-title-text {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+  padding-left: 16rpx;
+  border-left: 6rpx solid #07c160;
+}
+
+.card-filter-tabs {
+  display: flex;
+  background: #f1f3f5;
+  border-radius: 24rpx;
+  padding: 4rpx;
+  gap: 0;
+}
+
+.card-filter-item {
+  padding: 8rpx 24rpx;
+  font-size: 22rpx;
+  color: #666;
+  border-radius: 20rpx;
+  transition: all 0.25s ease;
+}
+
+.card-filter-item.active {
+  background: #ffffff;
+  color: #07c160;
+  font-weight: 600;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
 }
 
 /* 分组标题 */
@@ -262,9 +267,8 @@ page {
   font-size: 32rpx;
   font-weight: bold;
   font-family: 'DIN Alternate', sans-serif;
-  margin-left: 20rpx;
-  margin-right: 10rpx;
   flex-shrink: 0;
+  line-height: 1.2;
 }
 
 
@@ -508,13 +512,17 @@ page {
   flex-direction: column;
   align-items: flex-end;
   justify-content: center;
+  flex-shrink: 0;
+  margin-left: 20rpx;
 }
 
 .cell-full-time {
-  font-size: 20rpx;
-  color: #cccccc;
-  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 6rpx;
   font-family: 'DIN Alternate', sans-serif;
+  line-height: 1.2;
+  white-space: nowrap; /* 完整「年月日 时分」不换行 */
 }
 
 /* 弹窗明细列表专用样式 */
@@ -644,7 +652,8 @@ page {
   right: 0;
   background: #ffffff;
   border-radius: 32rpx 32rpx 0 0;
-  padding: 40rpx 40rpx 60rpx; /* 底部留白 */
+  /* 底部留出自定义 tabBar(100rpx + 安全区) 的高度，否则「取消」会被永远置顶的原生 tab 层挡住 */
+  padding: 40rpx 40rpx calc(140rpx + env(safe-area-inset-bottom));
   transform: translateY(100%);
   transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
   box-shadow: 0 -10rpx 40rpx rgba(0,0,0,0.05);
@@ -703,13 +712,6 @@ page {
   font-weight: bold;
 }
 
-.sheet-cancel {
-  text-align: center;
-  font-size: 30rpx;
-  color: #999;
-  padding: 20rpx 0;
-}
-
 .sheet-divider {
   font-size: 24rpx;
   color: #999;
@@ -725,4 +727,312 @@ page {
   background: #f7f8fa;
   border-radius: 20rpx;
   margin-top: 10rpx;
+}
+
+/* ============ 统计分析：饼图 + 柱状图 + 大类占比 + 小类下钻 ============ */
+
+/* 饼图概览区 */
+.analysis-overview {
+  display: flex;
+  align-items: center;
+  gap: 32rpx;
+  margin-bottom: 24rpx;
+}
+
+/* 环形饼图（conic-gradient + 中心镂空） */
+.pie-wrap {
+  width: 220rpx;
+  height: 220rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.pie-hole {
+  width: 140rpx;
+  height: 140rpx;
+  background: #FFFFFF;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.pie-total-label {
+  font-size: 22rpx;
+  color: #999999;
+  margin-bottom: 4rpx;
+}
+
+.pie-total {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333333;
+  font-family: 'DIN Alternate', sans-serif;
+}
+
+/* 图例（前 4 大类占比） */
+.pie-legend {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16rpx 20rpx;
+}
+
+.pie-legend .legend-item {
+  display: flex;
+  align-items: center;
+  font-size: 24rpx;
+}
+
+.pie-legend .dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  margin-right: 12rpx;
+  flex-shrink: 0;
+}
+
+.pie-legend .name {
+  color: #999999;
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pie-legend .pct {
+  color: #333333;
+  font-weight: 600;
+  margin-left: 8rpx;
+}
+
+/* 纯 CSS 柱状图 */
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: 320rpx;
+  padding: 0 10rpx;
+  box-sizing: border-box;
+  border-top: 1rpx solid #F5F5F5;
+  padding-top: 24rpx;
+  margin-top: 8rpx;
+}
+
+.bar-item {
+  flex: 1;
+  max-width: 120rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.bar-value {
+  font-size: 22rpx;
+  font-weight: 600;
+  color: #333333;
+  font-family: 'DIN Alternate', sans-serif;
+  margin-bottom: 8rpx;
+  white-space: nowrap;
+}
+
+.bar-column-wrapper {
+  width: 60%;
+  min-width: 40rpx;
+  max-width: 80rpx;
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.bar-column {
+  width: 100%;
+  min-height: 8rpx;
+  border-radius: 8rpx 8rpx 4rpx 4rpx;
+  transition: height 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  animation: barGrow 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes barGrow {
+  from { transform: scaleY(0); transform-origin: bottom; }
+  to { transform: scaleY(1); transform-origin: bottom; }
+}
+
+.bar-label {
+  font-size: 22rpx;
+  color: #999999;
+  margin-top: 12rpx;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-align: center;
+}
+
+.analysis-empty {
+  text-align: center;
+  color: #999999;
+  font-size: 26rpx;
+  padding: 60rpx 0;
+}
+
+/* 分类明细：大类行 + 进度条 + 小类下钻 */
+.category-row {
+  overflow: hidden;
+  transition: all 0.3s;
+  border-bottom: 1rpx solid #F8F9FA;
+}
+
+.category-row:last-child {
+  border-bottom: none;
+}
+
+.category-row.expanded {
+  background: #FAFAFA;
+  border-radius: 24rpx;
+}
+
+.row-main {
+  display: flex;
+  align-items: center;
+  padding: 28rpx 0;
+}
+
+.cat-icon {
+  width: 84rpx;
+  height: 84rpx;
+  background: #F8F9FA;
+  border-radius: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 42rpx;
+  margin-right: 24rpx;
+  flex-shrink: 0;
+}
+
+.cat-icon-img {
+  width: 50rpx;
+  height: 50rpx;
+}
+
+.cat-body {
+  flex: 1;
+}
+
+.body-top {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+
+.cat-name {
+  font-size: 30rpx;
+  color: #333333;
+  font-weight: 500;
+}
+
+.cat-amount {
+  font-size: 32rpx;
+  color: #333333;
+  font-family: 'DIN Alternate', sans-serif;
+  font-weight: 600;
+}
+
+.body-bottom {
+  display: flex;
+  align-items: center;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8rpx;
+  background: #F0F2F5;
+  border-radius: 4rpx;
+  overflow: hidden;
+  margin-right: 20rpx;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4rpx;
+  transition: width 0.6s ease;
+}
+
+.cat-pct {
+  font-size: 24rpx;
+  color: #999999;
+  width: 80rpx;
+  text-align: right;
+  font-family: 'DIN Alternate', sans-serif;
+}
+
+.expand-icon {
+  width: 15rpx;
+  height: 15rpx;
+  border-left: 2rpx solid #CCC;
+  border-bottom: 2rpx solid #CCC;
+  transform: rotate(-45deg);
+  margin-left: 20rpx;
+  transition: transform 0.3s;
+}
+
+.expand-icon.up {
+  transform: rotate(135deg);
+  margin-top: 6rpx;
+}
+
+.sub-list {
+  background: #FFFFFF;
+  padding: 0 20rpx 30rpx 20rpx;
+  animation: slideDown 0.3s both;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 1000rpx; }
+}
+
+.sub-item {
+  display: flex;
+  align-items: center;
+  padding: 25rpx 40rpx;
+  border-bottom: 1rpx solid #F0F0F0;
+  font-size: 26rpx;
+  position: relative;
+}
+
+.sub-item:last-child {
+  border-bottom: none;
+}
+
+.sub-name {
+  color: #333333;
+  flex: 1;
+  padding-left: 20rpx;
+}
+
+.sub-amount {
+  font-weight: 600;
+  color: #333333;
+  width: 140rpx;
+  text-align: right;
+  font-family: 'DIN Alternate', sans-serif;
+}
+
+.sub-pct {
+  color: #999999;
+  font-size: 22rpx;
+  width: 90rpx;
+  text-align: right;
+  margin-left: 20rpx;
 }

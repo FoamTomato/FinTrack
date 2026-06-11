@@ -1,0 +1,80 @@
+<view class="container">
+
+  <!-- 引导卡片 -->
+  <view class="tip-card">
+    <view class="tip-title">🎤 语音记账</view>
+    <view class="tip-sub">按住下方按钮说话，例如：“今天打车30，午饭25，发了工资8000”</view>
+  </view>
+
+  <!-- 识别文字（可编辑） -->
+  <view class="text-card">
+    <textarea
+      class="text-area"
+      value="{{text}}"
+      placeholder="识别的文字会显示在这里，可手动修改"
+      placeholder-class="text-placeholder"
+      bindinput="onTextInput"
+      maxlength="2000"
+      auto-height
+    />
+    <view wx:if="{{transcribing}}" class="partial">识别中…</view>
+    <view wx:if="{{text}}" class="clear-btn" catchtap="onClear">清空</view>
+  </view>
+
+  <!-- 录音按钮 -->
+  <view class="record-zone">
+    <view
+      class="record-btn {{recording ? 'recording' : ''}}"
+      bindtouchstart="onStartRecord"
+      bindtouchend="onStopRecord"
+      bindtouchcancel="onStopRecord"
+    >
+      <view class="record-icon">🎤</view>
+      <view class="record-label">{{recording ? '松开结束' : (transcribing ? '识别中…' : '按住说话')}}</view>
+    </view>
+  </view>
+
+  <!-- 历史记录卡片 -->
+  <view class="fui-card history-card">
+    <view class="card-title-row">
+      <view class="fui-card-title">语音历史</view>
+      <view class="refresh-btn {{loadingHistory ? 'spinning' : ''}}" catchtap="onRefresh">↻</view>
+    </view>
+
+    <view wx:if="{{tasks.length === 0 && !loadingHistory}}" class="empty-tip">暂无语音记录</view>
+
+    <view class="task-list">
+      <view
+        wx:for="{{tasks}}"
+        wx:key="id"
+        class="task-item"
+        bindtap="onGoToResult"
+        data-taskid="{{item.id}}"
+      >
+        <view class="task-info">
+          <view class="task-text">{{item.inputText || '（无文字）'}}</view>
+          <view class="task-status-row">
+            <text class="task-time">{{item.createdAtText}}</text>
+            <view wx:if="{{item.status === 'pending' || item.status === 'processing'}}" class="status-tag processing">
+              <view class="mini-spin"></view>解析中
+            </view>
+            <view wx:elif="{{item.status === 'completed'}}" class="status-tag completed">已完成</view>
+            <view wx:elif="{{item.status === 'failed'}}" class="status-tag failed">解析失败</view>
+            <text wx:if="{{item.itemCount !== null}}" class="item-count">{{item.itemCount}} 条</text>
+          </view>
+        </view>
+        <view class="task-action">
+          <view wx:if="{{item.imported}}" class="tag-imported">已导入</view>
+          <view wx:elif="{{item.status === 'completed'}}" class="action-arrow">›</view>
+          <view wx:elif="{{item.status === 'failed'}}" class="action-arrow failed">›</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 解析按钮 -->
+  <view class="footer-action">
+    <button class="submit-btn-premium" bindtap="onParse" disabled="{{!text || submitting}}">识别记账</button>
+  </view>
+
+</view>

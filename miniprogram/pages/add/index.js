@@ -1,224 +1,313 @@
+const app = getApp();
 const API = require('../../utils/api');
 const Loading = require('../../utils/loading');
 const Logger = require('../../utils/logger');
 const log = Logger.module('add');
+const { buildTimeline } = require('../../utils/timeline');
+const { loadBatchMap } = require('../../utils/scanPicker');
+const scanPicker = require('../../utils/scanPicker');
+
+// 端上录音（语音 sheet 用）
+const recorder = wx.getRecorderManager();
 
 Page({
-  /**
-   * 页面数据
-   */
   data: {
-    transactionType: 2,
-    amount: '',
-    date: '',
-    note: '',
-    multiArray: [[], []],
-    multiIndex: [0, 0],
-    categoryTree: [],
-    selectedCategoryName: '',
-    selectedCategoryId: null
+    groups: [],            // 时间线分组 [{label,ymd,items}]
+    loading: true,
+    empty: false,
+
+    // 三种 sheet 互斥：'' | 'manual' | 'voice' | 'scan'，保证同时只有一个出来
+    activeSheet: '',
+
+    // 语音 sheet 内部状态
+    recording: false,
+    transcribing: false,
+    recordDenied: false,
+    voiceText: '',
+    voiceSubmitting: false
   },
 
-  /**
-   * 生命周期 —— 只做调度
-   */
   onLoad() {
-    const today = new Date().toISOString().split('T')[0];
-    this.setData({ date: today });
-    this.loadCategories();
+    this._initRecorder();
   },
 
   onShow() {
-    this.loadCategories();
+    // 同步自定义 tabBar 选中态 + 图标
+    const tb = this.getTabBar && this.getTabBar();
+    if (tb && tb.setSelected) tb.setSelected(1);
+
+    this.fetchTimeline();
+
+    // 消费来自 tabBar 的待执行动作（轻点/长按选模式都走这里，保证切换后立即弹）
+    if (app.globalData && app.globalData.pendingAddMode) {
+      const mode = app.globalData.pendingAddMode;
+      app.globalData.pendingAddMode = null;
+      this.triggerAddMode(mode);
+    }
   },
 
-  /**
-   * 数据获取 —— 分类树
-   */
-  async loadCategories() {
+  onHide() { this._stopPolling(); },
+  onUnload() { this._stopPolling(); },
+  onPullDownRefresh() { this.fetchTimeline().then(() => wx.stopPullDownRefresh()); },
+
+  // ============ 数据：拉取并构建时间线 ============
+  async fetchTimeline() {
+    if (!app.globalData || app.globalData.isAuthorized !== true) {
+      this.setData({ loading: false, empty: true });
+      return;
+    }
+    this.setData({ loading: true });
+
+    // 当月范围（与 home 一致，手动交易当月足够；task 历史接口本身返回近 50 条）
+    const now = new Date();
+    const y = now.getFullYear(), m = now.getMonth() + 1;
+    const startDate = `${y}-${('0' + m).slice(-2)}-01`;
+    const lastDay = new Date(y, m, 0).getDate();
+    const endDate = `${y}-${('0' + m).slice(-2)}-${('0' + lastDay).slice(-2)}`;
+
     try {
-      // 步骤1：请求分类树
-      const res = await API.getCategoryTree(this.data.transactionType, true);
-      if (res.code !== 0) return;
+      const [dashRes, voiceRes, scanRes] = await Promise.all([
+        API.getDashboard({ startDate, endDate, type: 0, scope: 0, groupId: null }),
+        API.getVoiceHistory(),
+        API.getScanHistory()
+      ]);
 
-      const tree = res.data || [];
-      if (tree.length === 0) {
-        this.setData({
-          categoryTree: [],
-          multiArray: [[], []],
-          selectedCategoryName: '',
-          selectedCategoryId: null
-        });
-        return;
-      }
+      const transactions = (dashRes && dashRes.code === 0 && dashRes.data && dashRes.data.list) || [];
+      const voiceTasks = (voiceRes && voiceRes.code === 0 && voiceRes.data) || [];
+      const scanTasks = (scanRes && scanRes.code === 0 && scanRes.data) || [];
 
-      // 步骤2：构建第一列
-      const firstColumn = tree.map(c => c.name);
-
-      // 步骤3：尝试保留已选中的分类，否则回退到默认 [0, 0]
-      const prevId = this.data.selectedCategoryId;
-      let pIdx = 0;
-      let cIdx = 0;
-      if (prevId) {
-        for (let i = 0; i < tree.length; i++) {
-          const children = tree[i].children || [];
-          const found = children.findIndex(c => c.id === prevId);
-          if (found >= 0) { pIdx = i; cIdx = found; break; }
-        }
-      }
-
-      const children = tree[pIdx].children || [];
-      const secondColumn = children.length > 0
-        ? children.map(c => c.name)
-        : ['无子分类'];
-      const selectedChild = children[cIdx];
-
-      // 步骤4：更新视图
-      this.setData({
-        categoryTree: tree,
-        multiArray: [firstColumn, secondColumn],
-        multiIndex: [pIdx, cIdx],
-        selectedCategoryName: selectedChild ? selectedChild.name : '',
-        selectedCategoryId: selectedChild ? selectedChild.id : null
+      const groups = buildTimeline({
+        transactions, voiceTasks, scanTasks,
+        scanBatchMap: loadBatchMap()
       });
+
+      this.setData({ groups, empty: groups.length === 0 });
+
+      // 有进行中的 task 则轮询刷新
+      const hasPending =
+        voiceTasks.some(t => t.status === 'pending' || t.status === 'processing') ||
+        scanTasks.some(t => t.status === 'pending' || t.status === 'processing');
+      if (hasPending) this._startPolling(); else this._stopPolling();
     } catch (err) {
-      log.error('loadCategories failed:', err);
+      log.error('fetchTimeline failed:', err);
+      Loading.error('加载失败');
+    } finally {
+      this.setData({ loading: false });
+      wx.stopPullDownRefresh();
     }
   },
 
-  /**
-   * 事件处理 —— 切换收支类型
-   */
-  onChangeTransactionType(e) {
-    const type = parseInt(e.currentTarget.dataset.type);
-    if (type === this.data.transactionType) return;
+  _startPolling() {
+    if (this._pollTimer) return;
+    this._pollTimer = setInterval(() => this.fetchTimeline(), 3000);
+  },
+  _stopPolling() {
+    if (this._pollTimer) { clearInterval(this._pollTimer); this._pollTimer = null; }
+  },
 
-    this.setData({ transactionType: type }, () => {
-      this.loadCategories();
+  // ============ 由 tabBar 手势/轻点触发（三 sheet 互斥）============
+  triggerAddMode(mode) {
+    if (mode === 'manual') this.openManualSheet();
+    else if (mode === 'voice') this.openVoiceSheet();
+    else if (mode === 'scan') this.openScanSheet();
+  },
+
+  // 关闭所有 sheet（切换前先清空，保证只有一个出来）
+  closeSheet() {
+    if (this.data.recording) recorder.stop();
+    this.setData({ activeSheet: '' });
+  },
+  noop() {},
+
+  // ============ 手动 sheet ============
+  openManualSheet() {
+    this.setData({ activeSheet: 'manual' }, () => {
+      const form = this.selectComponent('#manualForm');
+      if (form) form.loadCategories();
     });
   },
 
-  /**
-   * 事件处理 —— 分类列联动
-   */
-  onCategoryColumnChange(e) {
-    const { column, value } = e.detail;
-    const tree = this.data.categoryTree;
-    const multiIndex = this.data.multiIndex;
-
-    multiIndex[column] = value;
-
-    if (column === 0) {
-      multiIndex[1] = 0;
-      const children = tree[value].children || [];
-      const secondColumn = children.length > 0
-        ? children.map(c => c.name)
-        : ['无子分类'];
-
-      this.setData({
-        'multiArray[1]': secondColumn,
-        multiIndex
-      });
-    } else {
-      this.setData({ multiIndex });
-    }
-  },
-
-  /**
-   * 事件处理 —— 分类确定选择
-   */
-  onCategoryChange(e) {
-    const [pIdx, cIdx] = e.detail.value;
-    const tree = this.data.categoryTree;
-    const parent = tree[pIdx];
-    const child = parent.children && parent.children[cIdx];
-
-    if (!child) {
-      return Loading.toast('请选择二级分类');
-    }
-
-    this.setData({
-      multiIndex: [pIdx, cIdx],
-      selectedCategoryName: child.name,
-      selectedCategoryId: child.id
-    });
-  },
-
-  /**
-   * 事件处理 —— 日期选择
-   */
-  onDateChange(e) {
-    this.setData({ date: e.detail.value });
-  },
-
-  /**
-   * 事件处理 —— 金额输入实时校验
-   * 数据库 DECIMAL(10,2) 上限 99999999.99
-   */
-  onAmountInput(e) {
-    let value = e.detail.value;
-    const match = value.match(/^(\d{0,8})(\.\d{0,2})?/);
-    const truncated = match ? (match[1] + (match[2] || '')) : '';
-    if (truncated !== value) {
-      this.setData({ amount: truncated });
-      Loading.toast('金额最多 8 位整数 2 位小数');
-      return truncated;
-    }
-    this.setData({ amount: value });
-  },
-
-  /**
-   * 事件处理 —— 提交记账（防重复）
-   */
-  async onSubmit(e) {
-    // 防重复提交
+  async onManualSave(e) {
     if (this._submitting) return;
-
-    const { amount, note } = e.detail.value;
-    const { transactionType, selectedCategoryName, selectedCategoryId, date } = this.data;
-
-    // 参数校验
-    if (!amount) {
-      return Loading.toast('请输入金额');
-    }
-    const amountNum = parseFloat(amount);
-    if (isNaN(amountNum) || amountNum <= 0) {
-      return Loading.toast('请输入有效金额');
-    }
-    if (amountNum > 99999999.99) {
-      return Loading.toast('金额不能超过 99999999.99');
-    }
-    if (!selectedCategoryName) {
-      return Loading.toast('请选择分类');
-    }
-
+    const { type, amount, category, category_id, date, note } = e.detail.item;
     this._submitting = true;
     Loading.show('保存中...');
-
     try {
       const res = await API.createTransaction({
-        type: transactionType || 2,
+        type: type || 2,
         amount: parseFloat(amount) || 0,
-        category: selectedCategoryName || '未分类',
-        category_id: selectedCategoryId || 0,
+        category: category || '未分类',
+        category_id: category_id || 0,
         date: date || new Date().toISOString().split('T')[0],
         note: note || ''
       });
-
       Loading.hide();
-
       if (res.code === 0) {
-        this.setData({ amount: '', note: '' });
         Loading.success('记账成功');
+        this.setData({ activeSheet: '' });
+        this.fetchTimeline();
       } else {
         Loading.error(res.message || '保存失败');
       }
     } catch (err) {
       Loading.hide();
-      log.error('onSubmit failed:', err);
+      log.error('onManualSave failed:', err);
       Loading.error(err.message || '网络异常');
     } finally {
       this._submitting = false;
     }
+  },
+
+  // ============ 语音 sheet ============
+  openVoiceSheet() {
+    this._refreshRecordAuth();
+    this.setData({ activeSheet: 'voice', voiceText: '' });
+  },
+
+  _initRecorder() {
+    recorder.onStart(() => this.setData({ recording: true }));
+    recorder.onStop((res) => {
+      this.setData({ recording: false });
+      if (!res || !res.tempFilePath) return;
+      if (res.duration && res.duration < 500) { Loading.toast('说话时间太短'); return; }
+      this._transcribe(res.tempFilePath);
+    });
+    recorder.onError((err) => {
+      this.setData({ recording: false });
+      log.error('recorder error:', err);
+      this._refreshRecordAuth();
+      Loading.toast('录音失败，请检查麦克风权限');
+    });
+  },
+  _refreshRecordAuth() {
+    wx.getSetting({ success: (res) => this.setData({ recordDenied: res.authSetting['scope.record'] === false }) });
+  },
+  onStartRecord() {
+    if (this.data.recording || this.data.transcribing) return;
+    if (this.data.recordDenied) { this._promptOpenSetting(); return; }
+    recorder.start({ duration: 60000, sampleRate: 16000, numberOfChannels: 1, encodeBitRate: 48000, format: 'mp3' });
+  },
+  onStopRecord() {
+    if (!this.data.recording) return;
+    recorder.stop();
+  },
+  async _transcribe(filePath) {
+    this.setData({ transcribing: true });
+    Loading.show('识别中...');
+    try {
+      const res = await API.transcribeVoice(filePath);
+      Loading.hide();
+      if (res.code === 0 && res.data && res.data.text) {
+        const merged = (this.data.voiceText ? this.data.voiceText + '，' : '') + res.data.text;
+        this.setData({ voiceText: merged });
+      } else {
+        Loading.toast(res.message || '没识别到内容，请重说');
+      }
+    } catch (err) {
+      Loading.hide();
+      log.error('transcribe failed:', err);
+      Loading.error(err.message || '识别失败');
+    } finally {
+      this.setData({ transcribing: false });
+    }
+  },
+  _promptOpenSetting() {
+    wx.showModal({
+      title: '需要麦克风权限',
+      content: '语音记账需要使用麦克风，请在设置中开启后再试',
+      confirmText: '去设置',
+      success: (r) => {
+        if (!r.confirm) return;
+        wx.openSetting({
+          success: (s) => {
+            if (s.authSetting && s.authSetting['scope.record']) {
+              this.setData({ recordDenied: false });
+              Loading.toast('已开启，可以按住说话了');
+            }
+          }
+        });
+      }
+    });
+  },
+  onVoiceTextInput(e) { this.setData({ voiceText: e.detail.value }); },
+  onVoiceClear() { this.setData({ voiceText: '' }); },
+
+  async onVoiceParse() {
+    const text = (this.data.voiceText || '').trim();
+    if (!text) { Loading.toast('请先说话或输入文字'); return; }
+    if (this.data.voiceSubmitting) return;
+    this.setData({ voiceSubmitting: true });
+    Loading.show('提交中...');
+    try {
+      const res = await API.parseVoice(text);
+      Loading.hide();
+      if (res.code === 0) {
+        this.setData({ activeSheet: '' });
+        // 时间线会出现"识别中"语音卡并轮询；直接刷新一次
+        this.fetchTimeline();
+      } else {
+        Loading.error(res.message || '提交失败');
+      }
+    } catch (err) {
+      Loading.hide();
+      log.error('parseVoice failed:', err);
+      Loading.error(err.message || '网络异常');
+    } finally {
+      this.setData({ voiceSubmitting: false });
+    }
+  },
+
+  // ============ 图片 sheet（点击按钮再调系统选图器）============
+  openScanSheet() { this.setData({ activeSheet: 'scan' }); },
+
+  async startScan() {
+    if (this._scanPicking) return;
+    this._scanPicking = true;
+    const result = await scanPicker.pickAndUpload({
+      onProgress: (cur, total) => Loading.show(`上传中 ${cur}/${total}`)
+    });
+    Loading.hide();
+    this._scanPicking = false;
+    // 取消选择则保持 sheet 打开；成功上传则关 sheet 并刷新时间线
+    if (result && result.uploaded > 0) {
+      this.setData({ activeSheet: '' });
+      Loading.toast(`已提交 ${result.uploaded} 张，后台识别中...`);
+      this.fetchTimeline();
+    }
+  },
+
+  // ============ 卡片点击 → 详情页 ============
+  onCardTap(e) {
+    const { type, id, taskid, batchid } = e.currentTarget.dataset;
+    if (type === 'manual') {
+      // 复用编辑页：从当前时间线找到该笔，写 globalData
+      const card = this._findManualCard(id);
+      if (!card) return;
+      app.globalData.editingTransaction = {
+        id: card.id, type: card.type, amount: card.amount,
+        date: card.ymd, note: card.note, category: card.category,
+        category_id: card.category_id || 0
+      };
+      wx.navigateTo({ url: `/pages/edit/index?id=${id}` });
+    } else if (type === 'voice') {
+      wx.navigateTo({ url: `/pages/voice-result/index?taskId=${taskid}` });
+    } else if (type === 'scan') {
+      wx.navigateTo({ url: `/pages/scan-batch/index?batchId=${batchid}` });
+    }
+  },
+
+  // scan 卡片内点单图直接进 scan-result
+  onScanPhotoTap(e) {
+    const taskId = e.currentTarget.dataset.taskid;
+    if (taskId) wx.navigateTo({ url: `/pages/scan-result/index?taskId=${taskId}` });
+  },
+
+  _findManualCard(id) {
+    for (const g of this.data.groups) {
+      for (const c of g.items) {
+        if (c.cardType === 'manual' && String(c.id) === String(id)) return c;
+      }
+    }
+    return null;
   }
 });

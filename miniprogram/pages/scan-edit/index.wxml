@@ -1,0 +1,1 @@
+<bill-edit-form item="{{item}}" show-time="{{true}}" bind:save="onSave" />

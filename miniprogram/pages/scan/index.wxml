@@ -1,0 +1,70 @@
+<view class="container">
+
+  <!-- 上传卡片 -->
+  <view class="fui-card upload-card {{uploading ? 'uploading' : ''}}" bindtap="onChooseImage">
+    <view class="upload-inner">
+      <view class="upload-icon-wrap">
+        <view class="upload-icon">
+          <view class="cam-body">
+            <view class="cam-lens"></view>
+          </view>
+        </view>
+      </view>
+      <view wx:if="{{uploading}}">
+        <view class="upload-title">上传中 {{uploadProgress}}</view>
+        <view class="upload-sub">请稍候，正在提交识别任务</view>
+      </view>
+      <view wx:else>
+        <view class="upload-title">选择账单图片</view>
+        <view class="upload-sub">支持最多 9 张 · 自动识别每一笔</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 历史列表卡片 -->
+  <view class="fui-card history-card">
+    <view class="card-title-row">
+      <view class="fui-card-title">识别历史</view>
+      <view class="refresh-btn {{loadingHistory ? 'spinning' : ''}}" catchtap="onRefresh">↻</view>
+    </view>
+
+    <view wx:if="{{tasks.length === 0 && !loadingHistory}}" class="empty-tip">暂无识别记录</view>
+
+    <view class="task-list">
+      <view
+        wx:for="{{tasks}}"
+        wx:key="id"
+        class="task-item"
+        bindtap="onGoToResult"
+        data-taskid="{{item.id}}"
+      >
+        <!-- 缩略图 -->
+        <view wx:if="{{item.imageFullUrl}}" class="task-thumb-wrap" catchtap="onPreviewImage" data-url="{{item.imageFullUrl}}">
+          <image class="task-thumb" src="{{item.imageFullUrl}}" mode="aspectFill" lazy-load="true"></image>
+        </view>
+        <view wx:else class="task-thumb-placeholder">🖼</view>
+
+        <!-- 中间内容 -->
+        <view class="task-info">
+          <view class="task-time">{{item.createdAtText}}</view>
+          <view class="task-status-row">
+            <view wx:if="{{item.status === 'pending' || item.status === 'processing'}}" class="status-tag processing">
+              <view class="mini-spin"></view>识别中
+            </view>
+            <view wx:elif="{{item.status === 'completed'}}" class="status-tag completed">已完成</view>
+            <view wx:elif="{{item.status === 'failed'}}" class="status-tag failed">识别失败</view>
+            <text wx:if="{{item.itemCount !== null}}" class="item-count">{{item.itemCount}} 条账单</text>
+          </view>
+        </view>
+
+        <!-- 右侧 -->
+        <view class="task-action">
+          <view wx:if="{{item.imported}}" class="tag-imported">已导入</view>
+          <view wx:elif="{{item.status === 'completed'}}" class="action-arrow">›</view>
+          <view wx:elif="{{item.status === 'failed'}}" class="action-arrow failed">›</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+</view>

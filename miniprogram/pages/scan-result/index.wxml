@@ -1,0 +1,9 @@
+<bill-review
+  id="review"
+  status="{{status}}"
+  result="{{result}}"
+  imported="{{imported}}"
+  bind:edititem="onEditItem"
+  bind:submit="onBatchCreate"
+  bind:back="onBack"
+/>

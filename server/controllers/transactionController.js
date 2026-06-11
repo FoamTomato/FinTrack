@@ -72,7 +72,7 @@ class TransactionController {
         await transactionService.validateCategory(category_id, openid, Number(type))
       }
 
-      // 调用 Service
+      // 调用 Service（手动记账：记下购买时间的时分秒）
       const result = await transactionService.create({
         openid,
         type: Number(type),
@@ -81,7 +81,9 @@ class TransactionController {
         category_id,
         date,
         note,
-        group_id: finalGroupId
+        group_id: finalGroupId,
+        withTime: true,
+        source: 'manual'
       })
 
       // 返回响应
@@ -247,6 +249,126 @@ class TransactionController {
       })
 
       success(res, null, '更新成功')
+    } catch (err) {
+      next(err)
+    }
+  }
+
+  /**
+   * 批量创建账单（图片识别结果导入）
+   */
+  async batchCreate(req, res, next) {
+    try {
+      const openid = req.headers['x-wx-openid']
+      const { items } = req.body
+
+      if (!Array.isArray(items) || items.length === 0) {
+        throw { type: 'VALIDATION_ERROR', message: '账单列表不能为空' }
+      }
+      if (items.length > 50) {
+        throw { type: 'VALIDATION_ERROR', message: '单次批量不超过 50 条' }
+      }
+
+      // 区分来源任务表（scan_tasks / voice_tasks），避免两表自增 id 撞号导致错挂来源图/错标已导入
+      const importTaskId = parseInt(req.body.taskId)
+      const taskTable = req.body.taskType === 'voice' ? 'voice_tasks' : 'scan_tasks'
+      // 记账来源：用于「记一笔」时间线区分卡片；source_task_id 指向来源 task（无 taskId 则 null）
+      const source = req.body.taskType === 'voice' ? 'voice' : 'scan'
+      const sourceTaskId = importTaskId || null
+
+      // 识图导入：取该任务的来源整图，作为每笔的 source_image（语音无来源图）
+      let sourceImage = null
+      if (importTaskId && taskTable === 'scan_tasks') {
+        const db = require('../config/db')
+        const [trows] = await db.execute(
+          'SELECT image_url FROM scan_tasks WHERE id = ? AND openid = ?',
+          [importTaskId, openid]
+        )
+        if (trows.length) sourceImage = trows[0].image_url || null
+      }
+
+      // 同日缺少 time 的条目按屏幕顺序「日末递减」合成 trade_time：
+      // items 自上而下排列，截图最上(最新)一笔 → 23:59:59，依次 -1 秒，
+      // 配合 getList 的 ORDER BY trade_time DESC 保证列表顺序与截图一致，修复倒序。
+      const timelessSeen = {}
+      const resolveTradeTime = (item) => {
+        const t = typeof item.time === 'string' ? item.time.trim() : ''
+        if (/^\d{1,2}:\d{2}$/.test(t)) {
+          const [h, m] = t.split(':')
+          return `${String(h).padStart(2, '0')}:${m}:00`
+        }
+        const n = timelessSeen[item.date] || 0
+        timelessSeen[item.date] = n + 1
+        const total = Math.max(0, 86399 - n)
+        const hh = String(Math.floor(total / 3600)).padStart(2, '0')
+        const mm = String(Math.floor((total % 3600) / 60)).padStart(2, '0')
+        const ss = String(total % 60).padStart(2, '0')
+        return `${hh}:${mm}:${ss}`
+      }
+
+      const ids = []
+      let skipped = 0           // 去重跳过条数（已存在 / 同批重复）
+      let refundedSkipped = 0   // 退款条目跳过条数（即使前端误传也不入账）
+      const seenHashes = new Set()
+      for (const item of items) {
+        const { type, amount, category, category_id, date, note } = item
+
+        // 退款条目兜底：一律不入账（前端默认已不勾选，这里防误传）
+        if (item.refunded === true || item.refunded === 'true') {
+          refundedSkipped++
+          continue
+        }
+
+        if (![1, 2].includes(Number(type))) {
+          throw { type: 'VALIDATION_ERROR', message: 'type 必须为 1(收入) 或 2(支出)' }
+        }
+        if (!category || !date) {
+          throw { type: 'VALIDATION_ERROR', message: '缺少 category 或 date' }
+        }
+        if (!DATE_REGEX.test(date)) {
+          throw { type: 'VALIDATION_ERROR', message: '日期格式错误，应为 YYYY-MM-DD' }
+        }
+        if (isNaN(Number(amount)) || Number(amount) <= 0) {
+          throw { type: 'VALIDATION_ERROR', message: '金额必须大于 0' }
+        }
+        if (Number(amount) > 99999999.99) {
+          throw { type: 'VALIDATION_ERROR', message: '金额不能超过 99999999.99' }
+        }
+        if (category_id && Number(category_id) > 0) {
+          await transactionService.validateCategory(Number(category_id), openid, Number(type))
+        }
+
+        // 去重：同批内重复 或 库中已存在同指纹 → 跳过计数（仅导入路径拦截）
+        const hash = transactionService._dedupHash(openid, date, Number(amount), Number(type), note || '')
+        if (seenHashes.has(hash) || await transactionService.existsByDedup(openid, hash)) {
+          skipped++
+          continue
+        }
+        seenHashes.add(hash)
+
+        const result = await transactionService.create({
+          openid,
+          type: Number(type),
+          amount: Number(amount),
+          category,
+          category_id: Number(category_id) || 0,
+          date,
+          note: note || '',
+          tradeTime: resolveTradeTime(item),
+          cropUrl: typeof item.crop_url === 'string' ? item.crop_url : null,
+          sourceImage,
+          source,
+          sourceTaskId
+        })
+        ids.push(result.id)
+      }
+
+      if (importTaskId) {
+        const db = require('../config/db')
+        db.execute(`UPDATE ${taskTable} SET imported = 1 WHERE id = ? AND openid = ?`, [importTaskId, openid]).catch(() => {})
+      }
+
+      success(res, { ids, count: ids.length, skipped, refundedSkipped }, '批量记账成功')
     } catch (err) {
       next(err)
     }

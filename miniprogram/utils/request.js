@@ -26,15 +26,37 @@ function resolvePath(path) {
     .replace(/^\/uploads\//, '/uploads-test/');
 }
 
+// 后端鉴权中间件在缺少/无效 openid 时返回的业务码（HTTP 仍为 200）
+const AUTH_EXPIRED_CODE = 4010;
+
+/** 触发全局重登并在成功后重试原请求一次；失败则按登录失效 reject。 */
+function reloginAndRetry(retryFn, resolve, reject) {
+  const app = getApp();
+  if (!app || typeof app.forceRelogin !== 'function') {
+    reject({ message: '登录已失效，请重启小程序', code: AUTH_EXPIRED_CODE });
+    return;
+  }
+  app.forceRelogin()
+    .then((authorized) => {
+      if (authorized) {
+        retryFn().then(resolve).catch(reject);
+      } else {
+        reject({ message: '登录已失效，请重启小程序', code: AUTH_EXPIRED_CODE });
+      }
+    })
+    .catch(() => reject({ message: '登录已失效，请重启小程序', code: AUTH_EXPIRED_CODE }));
+}
+
 /**
  * 封装 wx.request 为 Promise
  *
  * @param {string} path  接口路径，如 '/api/user/login'
  * @param {string} method 请求方法 GET/POST
  * @param {object} data  请求参数
+ * @param {boolean} _isRetry 内部参数：标记本次是登录失效后的重试，避免无限重试
  * @returns {Promise}
  */
-const request = (path, method = 'GET', data = {}) => {
+const request = (path, method = 'GET', data = {}, _isRetry = false) => {
   return new Promise((resolve, reject) => {
     const app = getApp();
     const openid = (app && app.globalData && app.globalData.openid) || '';
@@ -51,10 +73,16 @@ const request = (path, method = 'GET', data = {}) => {
       success: (res) => {
         if (res.statusCode === 200 && res.data && res.data.code === 0) {
           resolve(res.data);
-        } else {
-          const errMsg = (res.data && res.data.message) || '请求异常';
-          reject({ message: errMsg, ...res.data });
+          return;
         }
+        // 登录失效：重登后自动重试一次（仅一次，防止死循环）
+        if (res.data && res.data.code === AUTH_EXPIRED_CODE && !_isRetry) {
+          log.warn('登录失效(4010)，重新登录后重试:', path);
+          reloginAndRetry(() => request(path, method, data, true), resolve, reject);
+          return;
+        }
+        const errMsg = (res.data && res.data.message) || '请求异常';
+        reject({ message: errMsg, ...res.data });
       },
       fail: (err) => {
         log.error('请求失败:', path, err);
@@ -66,8 +94,10 @@ const request = (path, method = 'GET', data = {}) => {
 
 /**
  * 封装 wx.uploadFile 为 Promise
+ *
+ * @param {boolean} _isRetry 内部参数：标记登录失效后的重试，避免无限重试
  */
-const uploadFile = (path, filePath, name = 'file') => {
+const uploadFile = (path, filePath, name = 'file', _isRetry = false) => {
   return new Promise((resolve, reject) => {
     const app = getApp();
     const openid = (app && app.globalData && app.globalData.openid) || '';
@@ -82,8 +112,11 @@ const uploadFile = (path, filePath, name = 'file') => {
           const data = JSON.parse(res.data);
           if (data.code === 0) {
             resolve(data);
+          } else if (data.code === AUTH_EXPIRED_CODE && !_isRetry) {
+            log.warn('登录失效(4010)，重新登录后重试上传:', path);
+            reloginAndRetry(() => uploadFile(path, filePath, name, true), resolve, reject);
           } else {
-            reject({ message: data.message || '上传失败' });
+            reject({ message: data.message || '上传失败', ...data });
           }
         } catch (e) {
           reject({ message: '解析响应失败' });

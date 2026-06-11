@@ -7,7 +7,13 @@
     "pages/category/index",
     "pages/category-detail/index",
     "pages/group/index",
-    "pages/stats/index"
+    "pages/scan/index",
+    "pages/scan-result/index",
+    "pages/scan-edit/index",
+    "pages/voice/index",
+    "pages/voice-result/index",
+    "pages/voice-edit/index",
+    "pages/scan-batch/index"
   ],
   "window": {
     "backgroundColor": "#F6F6F6",
@@ -17,6 +23,7 @@
     "navigationBarTextStyle": "black"
   },
   "tabBar": {
+    "custom": true,
     "color": "#999999",
     "selectedColor": "#07c160",
     "backgroundColor": "#ffffff",

@@ -1,0 +1,37 @@
+<!-- 弧形唤起浮层（盖到 tab 上方页面区域，position:fixed） -->
+<view class="summon-scrim {{summonShow ? 'show' : ''}}" bindtap="onScrimTap" catchtouchmove="noop"></view>
+<view wx:if="{{summonShow}}" class="summon-tip">上滑选择记账方式 · 松手进入</view>
+<view class="summon {{summonShow ? 'show' : ''}}">
+  <view
+    wx:for="{{options}}"
+    wx:key="mode"
+    class="opt {{item.cls}} {{hoverIndex === index ? 'active' : ''}}">
+    <text class="e">{{item.icon}}</text>
+    <text class="n">{{item.name}}</text>
+  </view>
+</view>
+
+<!-- 底部三 tab -->
+<view class="tabbar">
+  <view class="tab {{selected === 0 ? 'on' : ''}}" bindtap="onTapHome">
+    <text class="ic">📊</text>
+    <text class="tx">首页</text>
+  </view>
+
+  <!-- 记一笔：承载长按上滑手势 -->
+  <view
+    class="tab tab-add {{selected === 1 ? 'on' : ''}}"
+    bindtap="onTapAdd"
+    bindlongpress="onLongPressAdd"
+    catchtouchmove="onTouchMoveAdd"
+    bindtouchend="onTouchEndAdd"
+    bindtouchcancel="onTouchEndAdd">
+    <text class="ic {{summonShow ? 'pressing' : ''}}">{{addIcon}}</text>
+    <text class="tx">记一笔</text>
+  </view>
+
+  <view class="tab {{selected === 2 ? 'on' : ''}}" bindtap="onTapSettings">
+    <text class="ic">⚙️</text>
+    <text class="tx">配置</text>
+  </view>
+</view>

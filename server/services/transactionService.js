@@ -1,6 +1,29 @@
 const db = require('../config/db')
+const crypto = require('crypto')
 
 class TransactionService {
+  /**
+   * 计算交易去重指纹：sha1(openid|date|amount|type|归一化备注)。
+   * 备注去掉所有空白并小写，金额统一两位小数，保证「同一笔」无论来源都得到一致 hash。
+   */
+  _dedupHash(openid, date, amount, type, note) {
+    const normNote = String(note || '').replace(/\s+/g, '').toLowerCase()
+    const amt = (Number(amount) || 0).toFixed(2)
+    const raw = `${openid}|${date}|${amt}|${Number(type)}|${normNote}`
+    return crypto.createHash('sha1').update(raw).digest('hex')
+  }
+
+  /**
+   * 判断某去重指纹是否已存在（仅识图/语音导入路径调用，手动记账不拦截）
+   */
+  async existsByDedup(openid, hash) {
+    const [rows] = await db.execute(
+      'SELECT 1 FROM transactions WHERE openid = ? AND dedup_hash = ? LIMIT 1',
+      [openid, hash]
+    )
+    return rows.length > 0
+  }
+
   /**
    * 校验分类归属和有效性
    */
@@ -21,13 +44,35 @@ class TransactionService {
    * 创建账单
    */
   async create(data) {
-    // 插入账单记录
-    const sql = `INSERT INTO transactions (openid, type, amount, category, category_id, date, note, group_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    const [result] = await db.execute(sql, [
+    // 插入账单记录。trade_time 三态：
+    //   1) 显式 tradeTime("HH:MM[:SS]")：识图/语音导入回填账单实际时间或屏幕顺序合成时间
+    //   2) withTime=true(服务端布尔，非用户输入)：手动记账记下当前时分秒(CURTIME)
+    //   3) 都没有：NULL(仅日期)
+    let tradeTimeExpr = 'NULL'
+    let tradeTimeParam = null
+    if (typeof data.tradeTime === 'string' && /^\d{1,2}:\d{2}(:\d{2})?$/.test(data.tradeTime.trim())) {
+      const t = data.tradeTime.trim()
+      tradeTimeExpr = '?'
+      tradeTimeParam = t.length === 5 ? `${t}:00` : (t.length === 4 ? `0${t}:00` : t)
+    } else if (data.withTime) {
+      tradeTimeExpr = 'CURTIME()'
+    }
+
+    const dedupHash = this._dedupHash(data.openid, data.date, data.amount, data.type, data.note)
+
+    // 记账来源：manual(默认) / voice / scan；source_task_id 指向来源 task（手动为 null）
+    const source = ['manual', 'voice', 'scan'].includes(data.source) ? data.source : 'manual'
+    const sourceTaskId = data.sourceTaskId ? Number(data.sourceTaskId) : null
+
+    const sql = `INSERT INTO transactions (openid, type, amount, category, category_id, date, trade_time, note, dedup_hash, crop_url, source_image, group_id, source, source_task_id)
+      VALUES (?, ?, ?, ?, ?, ?, ${tradeTimeExpr}, ?, ?, ?, ?, ?, ?, ?)`
+    const params = [
       data.openid, data.type, data.amount, data.category,
-      data.category_id || 0, data.date, data.note, data.group_id || null
-    ])
+      data.category_id || 0, data.date
+    ]
+    if (tradeTimeParam !== null) params.push(tradeTimeParam)
+    params.push(data.note, dedupHash, data.cropUrl || null, data.sourceImage || null, data.group_id || null, source, sourceTaskId)
+    const [result] = await db.execute(sql, params)
 
     // 更新分类使用频率
     if (data.category_id && data.category_id > 0) {
@@ -118,7 +163,7 @@ class TransactionService {
    * 获取列表（支持筛选）
    */
   async getList(openid, params = {}) {
-    const { startDate, endDate, type, scope, groupId, page = 1, pageSize = 50 } = params
+    const { startDate, endDate, type, scope, groupId, page = 1, pageSize = 50, all = false } = params
 
     // 构建查询条件
     const filter = this._buildScopeFilter(openid, scope, groupId, 't')
@@ -138,8 +183,10 @@ class TransactionService {
       queryParams.push(type)
     }
 
-    // 分页参数（直接嵌入，因为 mysql2 execute 对 LIMIT/OFFSET 参数化支持有问题）
+    // all=true 时取全量（首页 dashboard 当月已按日期天然有界，无需分页）；
+    // 否则分页参数直接嵌入（mysql2 execute 对 LIMIT/OFFSET 参数化支持有问题）
     const offset = (page - 1) * pageSize
+    const limitClause = all ? '' : `LIMIT ${parseInt(pageSize)} OFFSET ${parseInt(offset)}`
 
     // 执行查询
     const sql = `SELECT t.id, t.type, t.amount, t.openid, t.category_id,
@@ -147,13 +194,15 @@ class TransactionService {
         c.icon,
         u.nickname as creatorName,
         u.avatar_url as creatorAvatar,
-        DATE_FORMAT(t.date, '%Y-%m-%d') as date, t.note, t.created_at
+        DATE_FORMAT(t.date, '%Y-%m-%d') as date,
+        TIME_FORMAT(t.trade_time, '%H:%i') as trade_time,
+        t.note, t.crop_url, t.source_image, t.source, t.source_task_id, t.created_at
       FROM transactions t
       LEFT JOIN categories c ON t.category_id = c.id AND c.is_deleted = 0
       LEFT JOIN users u ON t.openid = u.openid
       WHERE ${conditions.join(' AND ')}
-      ORDER BY t.date DESC, t.created_at DESC
-      LIMIT ${parseInt(pageSize)} OFFSET ${parseInt(offset)}`
+      ORDER BY t.date DESC, t.trade_time DESC, t.created_at DESC
+      ${limitClause}`
 
     const [rows] = await db.execute(sql, queryParams)
     return rows
@@ -197,9 +246,9 @@ class TransactionService {
       FROM transactions
       WHERE ${summaryConditions.join(' AND ')}`
 
-    // 并行查询列表、日汇总、总收支
+    // 并行查询列表、日汇总、总收支（list 取当月全量，供近期明细 / 全天明细使用）
     const [list, stats, [summaryResult]] = await Promise.all([
-      this.getList(openid, { startDate, endDate, type, scope, groupId }),
+      this.getList(openid, { startDate, endDate, type, scope, groupId, all: true }),
       this.getStats(openid, startDate, endDate, scope, groupId),
       db.execute(summarySql, summaryParams)
     ])

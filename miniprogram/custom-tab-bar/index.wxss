@@ -1,0 +1,90 @@
+/* 自定义 tabBar —— 沿用现有视觉：主绿 #07c160 / 白底 */
+
+.tabbar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  height: calc(100rpx + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: #ffffff;
+  border-top: 1rpx solid #eef0f2;
+  display: flex;
+  align-items: center;
+  z-index: 100;
+}
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 20rpx;
+  color: #999999;
+  height: 100rpx;
+}
+.tab .ic { font-size: 40rpx; line-height: 1; margin-bottom: 4rpx; filter: grayscale(1); opacity: .55; }
+.tab .tx { font-size: 20rpx; }
+.tab.on { color: #07c160; }
+.tab.on .ic { filter: none; opacity: 1; }
+.tab .ic.pressing { transform: scale(1.2); filter: none; opacity: 1; transition: transform .18s; }
+
+/* 唤起遮罩 */
+.summon-scrim {
+  position: fixed; inset: 0;
+  background: rgba(20, 24, 28, .34);
+  z-index: 98;
+  opacity: 0; visibility: hidden;
+  transition: opacity .2s;
+}
+.summon-scrim.show { opacity: 1; visibility: visible; }
+
+/* 弧形 3 圆容器：锚在底部 tabBar 之上（含安全区），保证 3 圆整体高于底栏 */
+.summon {
+  position: fixed;
+  left: 50%;
+  bottom: calc(130rpx + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: 560rpx; height: 360rpx;
+  z-index: 99;
+  pointer-events: none;
+}
+.opt {
+  position: absolute;
+  bottom: 0; left: 50%;
+  width: 124rpx; height: 124rpx;
+  margin-left: -62rpx;
+  border-radius: 50%;
+  background: #ffffff;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  box-shadow: 0 10rpx 26rpx rgba(0, 0, 0, .18);
+  transition: all .26s cubic-bezier(.34, 1.4, .5, 1);
+  opacity: 0;
+}
+.opt .e { font-size: 52rpx; line-height: 1; }
+.opt .n { font-size: 20rpx; color: #666; margin-top: 6rpx; }
+
+.summon.show .opt { opacity: 1; }
+/* 落位：中间最高，两侧略低成弧；命中坐标由 JS boundingClientRect 实测，无需与此手算对齐 */
+.summon.show .opt.left  { transform: translate(-180rpx, -150rpx); }
+.summon.show .opt.mid   { transform: translate(0, -230rpx); }
+.summon.show .opt.right { transform: translate(180rpx, -150rpx); }
+
+.opt.active {
+  background: linear-gradient(135deg, #07c160, #38df86);
+  box-shadow: 0 12rpx 30rpx rgba(7, 193, 96, .4);
+}
+.opt.active .n { color: #fff; font-weight: 700; }
+.summon.show .opt.mid.active   { transform: translate(0, -246rpx) scale(1.12); }
+.summon.show .opt.left.active  { transform: translate(-180rpx, -162rpx) scale(1.12); }
+.summon.show .opt.right.active { transform: translate(180rpx, -162rpx) scale(1.12); }
+
+.summon-tip {
+  position: fixed;
+  left: 50%;
+  bottom: calc(500rpx + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 99;
+  color: #fff; font-size: 24rpx;
+  opacity: .95;
+  white-space: nowrap;
+  text-shadow: 0 1rpx 4rpx rgba(0, 0, 0, .3);
+}

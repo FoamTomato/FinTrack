@@ -1,0 +1,81 @@
+<view class="container">
+  <form bindsubmit="onSubmit">
+    <!-- 类型切换（手动记账页附带 🎤 语音 / 📷 拍照导入入口） -->
+    <view wx:if="{{showScanEntry || showVoiceEntry}}" class="top-bar-row">
+      <view class="type-tab-bar">
+        <view class="tab-item {{transactionType == 2 ? 'active expense' : ''}}" bindtap="onChangeTransactionType" data-type="2">支出</view>
+        <view class="tab-item {{transactionType == 1 ? 'active income' : ''}}" bindtap="onChangeTransactionType" data-type="1">收入</view>
+      </view>
+      <view wx:if="{{showVoiceEntry}}" class="scan-icon-btn" bindtap="onVoiceEntry">🎤</view>
+      <view wx:if="{{showScanEntry}}" class="scan-icon-btn" bindtap="onScanEntry">📷</view>
+    </view>
+    <view wx:else class="type-tab-bar">
+      <view class="tab-item {{transactionType == 2 ? 'active expense' : ''}}" bindtap="onChangeTransactionType" data-type="2">支出</view>
+      <view class="tab-item {{transactionType == 1 ? 'active income' : ''}}" bindtap="onChangeTransactionType" data-type="1">收入</view>
+    </view>
+
+    <!-- 金额 -->
+    <view class="fui-card">
+      <view class="input-row main-amount">
+        <text class="currency">¥</text>
+        <input name="amount" type="digit" placeholder="0.00" value="{{amount}}" placeholder-class="placeholder-amount" focus="{{true}}" bindinput="onAmountInput" />
+      </view>
+    </view>
+
+    <!-- 分类 / 日期 / 备注 -->
+    <view class="fui-card">
+      <picker mode="multiSelector" bindchange="onCategoryChange" bindcolumnchange="onCategoryColumnChange" value="{{multiIndex}}" range="{{multiArray}}">
+        <view class="input-row border-bottom">
+          <view class="label-box">
+            <text class="icon-emoji">📁</text>
+            <text class="label">分类</text>
+          </view>
+          <view class="picker-value">
+            {{multiArray[0][multiIndex[0]]}} > {{multiArray[1][multiIndex[1]]}}
+            <view class="nav-arrow right"></view>
+          </view>
+        </view>
+      </picker>
+
+      <picker mode="date" value="{{date}}" bindchange="onDateChange">
+        <view class="input-row border-bottom">
+          <view class="label-box">
+            <text class="icon-emoji">📅</text>
+            <text class="label">日期</text>
+          </view>
+          <view class="picker-value">
+            {{date}}
+            <view class="nav-arrow right"></view>
+          </view>
+        </view>
+      </picker>
+
+      <picker wx:if="{{showTime}}" mode="time" value="{{time}}" bindchange="onTimeChange">
+        <view class="input-row border-bottom">
+          <view class="label-box">
+            <text class="icon-emoji">⏰</text>
+            <text class="label">时间</text>
+          </view>
+          <view class="picker-value">
+            {{time || '未设置'}}
+            <view class="nav-arrow right"></view>
+          </view>
+        </view>
+      </picker>
+
+      <view class="input-row">
+        <view class="label-box">
+          <text class="icon-emoji">📝</text>
+          <text class="label">备注</text>
+        </view>
+        <input name="note" placeholder="写点备注..." value="{{note}}" class="note-input" placeholder-class="placeholder-note" />
+      </view>
+    </view>
+
+    <view wx:if="{{hint}}" class="edit-hint">{{hint}}</view>
+
+    <view class="footer-action">
+      <button form-type="submit" class="submit-btn-premium">{{submitText}}</button>
+    </view>
+  </form>
+</view>
